@@ -1,75 +1,55 @@
-# 🔥 Calorix — AI-Powered Fitness Tracker
+# 🔥 Calorix — Modern 2026 UI Refresh
 
-A modern, interactive calorie and fitness tracking web app designed for individuals working out, following diets, or aiming to monitor their daily health habits.
+Calorix now ships with a redesigned, portfolio-grade interface inspired by 2026 product design trends: bento layout, glassmorphism, gradient mesh backgrounds, animated KPI cards, and timeline-based history.
 
----
+## ✨ Highlights
 
-## ✨ Features
-
-- 🔐 **User Authentication** — Sign up, sign in, and persistent session management
-- 📋 **Onboarding Flow** — Profile setup with BMR/TDEE calculation based on age, weight, height & goal
-- 📊 **Dashboard** — Visual overview of daily calories, macros, and progress
-- 🍽️ **Calorie Tracking** — Log meals with detailed nutritional info
-- 🏋️ **Workout Tracking** — Log exercises and track calories burned
-- 📈 **Progress Monitoring** — Charts and graphs for weight and calorie trends
-- 💡 **Health Tips** — Daily AI-powered health and fitness tips
-- 🎯 **Goal Setting** — Set and track personalized fitness goals
-- ⚙️ **Settings Page** — Manage profile, preferences, and notifications
-
----
+- Bento grid dashboard with modern KPI cards
+- Animated gradient mesh background
+- Floating glass sidebar navigation
+- Magnetic action buttons with hover motion
+- Weekly trend chart + macro distribution pie view
+- Glass-style meal logging form with grouped macros
+- Modern split-layout login experience
+- Timeline-based history view
+- Smooth page transitions and dark/light theme toggle
 
 ## 🛠️ Tech Stack
 
 | Technology | Usage |
 |------------|-------|
 | HTML5 | Structure |
-| CSS3 | Styling & Animations |
-| JavaScript (Vanilla) | Logic & Interactivity |
-| LocalStorage | Data Persistence |
-
----
+| CSS3 | Glassmorphism, gradients, animations |
+| JavaScript (Vanilla) | UI state, page transitions, chart rendering |
 
 ## 🚀 Getting Started
 
-1. **Clone the repository**
+1. Clone the repository
    ```bash
    git clone https://github.com/ashwin2k23/Calorix.git
    ```
-
-2. **Navigate to the folder**
+2. Open the project directory
    ```bash
    cd Calorix
    ```
-
-3. **Open in browser**
-   - Simply open `index.html` in your browser
-   - Or use a Live Server extension in VS Code
-
----
+3. Start locally
+   - Open `index.html` in your browser
+   - or run a static server (`python -m http.server`)
 
 ## 📁 Project Structure
 
-```
+```text
 Calorix/
-├── index.html     # Main HTML structure
-├── styles.css     # All styles and animations
-└── app.js         # Application logic
+├── index.html
+├── styles.css
+├── app.js
+└── README.md
 ```
 
----
+## 🖼️ Screenshots
 
-## 🌐 Live Demo
+> Add/update screenshots in this section as part of UI iteration workflow.
 
-👉 [View Live on GitHub Pages](https://ashwin2k23.github.io/Calorix/)
-
----
-
-## 👤 Author
-
-**Ashwin** — [@ashwin2k23](https://github.com/ashwin2k23)
-
----
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
+- Dashboard: `docs/screenshots/dashboard.png`
+- Login page: `docs/screenshots/login.png`
+- Analytics page: `docs/screenshots/analytics.png`

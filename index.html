@@ -1,598 +1,142 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Calorix — AI-Powered Fitness Tracker</title>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calorix — Modern 2026 UI</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div class="app" id="APP">
-
-<!-- ══════════════════════ TOAST ══════════════════════ -->
-<div class="toast" id="toast"></div>
-
-<!-- ════════════════════ LANDING ════════════════════ -->
-<div class="scr on" id="land">
-  <div class="orb orb1"></div><div class="orb orb2"></div>
-  <div class="land-box">
-    <div class="badge-pill"><span class="pulse-dot"></span>BMI Planning + Calorie Tracking</div>
-    <div class="land-h"><span class="gtext">Calorix</span></div>
-    <div class="land-sub">Track calories, calculate BMI, log workouts, and achieve your fitness goals.</div>
-    <div class="stat-row">
-      <div class="stat-box"><div class="stat-n" style="color:var(--g1)">50K+</div><div class="stat-l">Active Users</div></div>
-      <div class="stat-box"><div class="stat-n" style="color:var(--g2)">4.9★</div><div class="stat-l">App Rating</div></div>
-      <div class="stat-box"><div class="stat-n" style="color:var(--g3)">2M+</div><div class="stat-l">Meals Logged</div></div>
-    </div>
-    <button class="btn-g" onclick="goScr('auth')">Get Started Free →</button>
-    <button class="btn-ghost" onclick="goScr('auth')">Sign In</button>
-  </div>
-</div>
-
-<!-- ════════════════════ AUTH ════════════════════ -->
-<div class="scr" id="auth">
-  <div class="orb orb1" style="opacity:0.05"></div><div class="orb orb2" style="opacity:0.05"></div>
-  <div style="display:flex;align-items:center;justify-content:center;height:100%;position:relative;z-index:2;padding:16px;overflow-y:auto">
-    <div class="auth-card" style="width:100%;max-width:360px">
-
-      <!-- Logo -->
-      <div style="text-align:center;margin-bottom:20px">
-        <div style="font-size:36px;margin-bottom:6px">🔥</div>
-        <div style="font-size:22px;font-weight:800;background:linear-gradient(120deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Calorix</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:3px">Your AI-powered fitness companion</div>
-      </div>
-
-      <!-- Sign in / Sign up tabs -->
-      <div id="auth-panels">
-        <div class="auth-toggle">
-          <div class="atab on" id="atab-in" onclick="authTab('in')">Sign In</div>
-          <div class="atab" id="atab-up" onclick="authTab('up')">Create Account</div>
-        </div>
-
-        <!-- SIGN IN FORM -->
-        <div id="form-in">
-          <div class="fw">
-            <label class="fl">Email address</label>
-            <input class="fi" id="login-email" type="email" placeholder="you@email.com" autocomplete="email">
-          </div>
-          <div class="fw" style="position:relative">
-            <label class="fl">Password</label>
-            <input class="fi" id="login-pass" type="password" placeholder="Your password" autocomplete="current-password" style="padding-right:40px">
-            <span onclick="togglePwd('login-pass',this)" style="position:absolute;right:12px;top:30px;cursor:pointer;font-size:14px;color:var(--text3)">👁</span>
-          </div>
-          <div style="text-align:right;margin:-4px 0 14px">
-            <a style="font-size:11px;color:var(--g1);cursor:pointer" onclick="authTab('reset')">Forgot password?</a>
-          </div>
-          <div id="signin-error" style="font-size:11px;color:#ff5f6d;background:rgba(255,95,109,0.1);border-radius:8px;padding:8px 10px;margin-bottom:10px;display:none"></div>
-          <button class="btn-g" id="signin-btn" onclick="doEmailSignIn()">
-            <span id="signin-btn-text">Sign In</span>
-          </button>
-        </div>
-
-        <!-- SIGN UP FORM -->
-        <div id="form-up" style="display:none">
-          <div class="fw">
-            <label class="fl">Full name</label>
-            <input class="fi" id="reg-name" type="text" placeholder="Alex Johnson" autocomplete="name">
-          </div>
-          <div class="fw">
-            <label class="fl">Email address</label>
-            <input class="fi" id="reg-email" type="email" placeholder="you@email.com" autocomplete="email">
-          </div>
-          <div class="fw" style="position:relative">
-            <label class="fl">Password (min 6 chars)</label>
-            <input class="fi" id="reg-pass" type="password" placeholder="Create password" autocomplete="new-password" style="padding-right:40px">
-            <span onclick="togglePwd('reg-pass',this)" style="position:absolute;right:12px;top:30px;cursor:pointer;font-size:14px;color:var(--text3)">👁</span>
-          </div>
-          <div class="fw" style="position:relative">
-            <label class="fl">Confirm password</label>
-            <input class="fi" id="reg-pass2" type="password" placeholder="Repeat password" autocomplete="new-password" style="padding-right:40px">
-            <span onclick="togglePwd('reg-pass2',this)" style="position:absolute;right:12px;top:30px;cursor:pointer;font-size:14px;color:var(--text3)">👁</span>
-          </div>
-          <div id="signup-error" style="font-size:11px;color:#ff5f6d;background:rgba(255,95,109,0.1);border-radius:8px;padding:8px 10px;margin-bottom:10px;display:none"></div>
-          <button class="btn-g" id="signup-btn" onclick="doEmailSignUp()">
-            <span id="signup-btn-text">Create Account →</span>
-          </button>
-        </div>
-
-        <!-- FORGOT PASSWORD FORM -->
-        <div id="form-reset" style="display:none">
-          <div style="text-align:center;margin-bottom:14px">
-            <div style="font-size:28px;margin-bottom:6px">🔑</div>
-            <div style="font-size:14px;font-weight:700;color:var(--text)">Reset Password</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:4px">Enter your email and we'll send a reset link</div>
-          </div>
-          <div class="fw">
-            <label class="fl">Email address</label>
-            <input class="fi" id="reset-email" type="email" placeholder="you@email.com" autocomplete="email">
-          </div>
-          <div id="reset-msg" style="font-size:11px;border-radius:8px;padding:8px 10px;margin-bottom:10px;display:none"></div>
-          <button class="btn-g" id="reset-btn" onclick="doPasswordReset()">
-            <span id="reset-btn-text">Send Reset Link</span>
-          </button>
-          <button class="btn-ghost" style="margin-top:8px" onclick="authTab('in')">← Back to Sign In</button>
-        </div>
-
-      </div><!-- /auth-panels -->
-
-
-    </div>
-  </div>
-</div>
-
-<!-- ════════════════════ ONBOARDING ════════════════════ -->
-<div class="scr" id="onboard">
-  <div class="ob-top">
-    <div class="ob-logo-t">Calorix</div>
-    <div class="ob-bar-wrap"><div class="ob-bar" id="ob-bar" style="width:25%"></div></div>
-    <span style="font-size:10px;color:var(--text3)" id="ob-snum">1 / 4</span>
-  </div>
-  <div class="ob-body">
-    <div id="obs1" style="width:100%;max-width:320px">
-      <div class="ob-icon">👤</div><div class="ob-h">Your body stats</div>
-      <div class="ob-p">We calculate your BMI and daily calorie target using the Mifflin-St Jeor formula.</div>
-      <div class="ob-form">
-        <div class="frow2">
-          <div class="fw"><label class="fl">Age</label><input class="fi" id="ob-age" type="number" value="28" min="10" max="100"></div>
-          <div class="fw"><label class="fl">Gender</label><select class="fsel" id="ob-gen"><option value="m">Male</option><option value="f">Female</option></select></div>
-        </div>
-        <div class="frow2">
-          <div class="fw"><label class="fl">Height (cm)</label><input class="fi" id="ob-h2" type="number" value="175" min="100" max="250"></div>
-          <div class="fw"><label class="fl">Weight (kg)</label><input class="fi" id="ob-w2" type="number" value="78" min="30" max="300"></div>
-        </div>
-      </div>
-    </div>
-    <div id="obs2" style="display:none;width:100%;max-width:320px">
-      <div class="ob-icon">🎯</div><div class="ob-h">Your fitness goal</div>
-      <div class="ob-p">This sets your recommended daily calorie target</div>
-      <div class="chip-g c3">
-        <div class="chip" onclick="pickGoal(this,'lose')"><div class="ch-em">📉</div><div class="ch-l">Lose Weight</div></div>
-        <div class="chip on" onclick="pickGoal(this,'maintain')"><div class="ch-em">⚖️</div><div class="ch-l">Maintain</div></div>
-        <div class="chip" onclick="pickGoal(this,'gain')"><div class="ch-em">💪</div><div class="ch-l">Gain Muscle</div></div>
-      </div>
-    </div>
-    <div id="obs3" style="display:none;width:100%;max-width:320px">
-      <div class="ob-icon">🏃</div><div class="ob-h">Activity level</div>
-      <div class="ob-p">How active are you each week?</div>
-      <div class="chip-g c1">
-        <div class="chip c1-chip blue-on" onclick="pickAct(this,1.2)"><span style="font-size:18px">🛋️</span><div><div class="ch-l">Sedentary</div><div class="ch-s">Little or no exercise</div></div></div>
-        <div class="chip c1-chip blue-on on" onclick="pickAct(this,1.55)"><span style="font-size:18px">🚶</span><div><div class="ch-l">Moderately Active</div><div class="ch-s">Exercise 3–5 days/week</div></div></div>
-        <div class="chip c1-chip blue-on" onclick="pickAct(this,1.725)"><span style="font-size:18px">🏋️</span><div><div class="ch-l">Very Active</div><div class="ch-s">Hard exercise 6–7 days</div></div></div>
-        <div class="chip c1-chip blue-on" onclick="pickAct(this,1.9)"><span style="font-size:18px">🔥</span><div><div class="ch-l">Extra Active</div><div class="ch-s">Physical job + exercise</div></div></div>
-      </div>
-    </div>
-    <div id="obs4" style="display:none;width:100%;max-width:320px;text-align:center">
-      <div class="ob-icon" style="background:rgba(0,232,122,0.15);border-color:rgba(0,232,122,0.35)">✅</div>
-      <div class="ob-h" style="background:linear-gradient(120deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">You're all set!</div>
-      <div class="ob-p">Your personalised health profile:</div>
-      <div style="background:var(--input-bg);border:1px solid var(--brd);border-radius:13px;padding:14px;text-align:left">
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="font-size:11px;color:var(--text2)">BMI</span><span style="font-size:12px;font-weight:800;color:var(--text)" id="ob-bmi">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="font-size:11px;color:var(--text2)">BMR (base metabolic rate)</span><span style="font-size:12px;font-weight:800;color:var(--text)" id="ob-bmr">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="font-size:11px;color:var(--text2)">Maintenance (TDEE)</span><span style="font-size:12px;font-weight:800;color:var(--g2)" id="ob-tdee">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="font-size:11px;color:var(--text2)">Your daily target</span><span style="font-size:12px;font-weight:800;color:var(--g1)" id="ob-target">—</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="ob-foot">
-    <button class="btn-bk" id="ob-back" style="display:none" onclick="obBack()">← Back</button>
-    <button class="btn-nx" id="ob-next" onclick="obNext()">Continue →</button>
-  </div>
-</div>
-
-<!-- ════════════════════ MAIN APP ════════════════════ -->
-<div class="scr" id="main">
-  <div class="topbar">
-    <div class="top-logo">🔥 Calorix</div>
-    <div class="top-r">
-      <div class="top-date" id="topdate"></div>
-      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-      <div class="av" id="user-av">AJ</div>
-    </div>
+  <div class="animated-bg" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+    <span class="mesh"></span>
   </div>
 
-  <div class="content" id="maincontent">
+  <div class="app-shell">
+    <aside class="floating-sidebar glass">
+      <div class="brand">🔥 <span>Calorix</span></div>
+      <nav>
+        <button class="nav-btn active" data-page="dashboard">📊 <span>Dashboard</span></button>
+        <button class="nav-btn" data-page="add-meal">🍽️ <span>Log Meal</span></button>
+        <button class="nav-btn" data-page="analytics">📈 <span>Analytics</span></button>
+        <button class="nav-btn" data-page="history">🕒 <span>History</span></button>
+        <button class="nav-btn" data-page="settings">⚙️ <span>Settings</span></button>
+      </nav>
+      <button id="theme-toggle" class="magnetic-btn">🌙 Dark</button>
+    </aside>
 
-    <!-- ── HOME ── -->
-    <div class="pg on" id="pg-home">
-      <div class="tip">
-        <div style="font-size:22px" id="tip-em">💧</div>
-        <div><div class="tip-bdg" id="tip-bdg">Hydration</div><div class="tip-txt" id="tip-txt">Drink water before meals to control portions and boost metabolism by up to 30%.</div></div>
-      </div>
-      <div class="hero">
-        <div class="hero-glow"></div>
-        <div style="font-size:10px;color:var(--text2);margin-bottom:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase">Today's Overview</div>
-        <div class="ring-area">
-          <div class="rw">
-            <svg width="110" height="110" viewBox="0 0 110 110" style="position:absolute;top:0;left:0">
-              <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(128,128,128,0.12)" stroke-width="9"/>
-              <circle cx="55" cy="55" r="46" fill="none" stroke="url(#rg2)" stroke-width="9" stroke-linecap="round" id="mainring" transform="rotate(-90 55 55)" stroke-dasharray="289" stroke-dashoffset="84"/>
-              <defs><linearGradient id="rg2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#00e87a"/><stop offset="100%" stop-color="#00c2ff"/></linearGradient></defs>
-            </svg>
-            <div class="rc"><div class="rn" id="r-eaten">1,480</div><div class="rs">of <span id="r-goal">2,100</span></div></div>
+    <main class="main-view">
+      <section id="page-login" class="page active">
+        <div class="login-layout">
+          <div class="login-panel gradient-panel">
+            <h1>Welcome back</h1>
+            <p>Track calories, macros, and momentum with a startup-grade interface.</p>
           </div>
-          <div class="rstats">
-            <div class="rstat"><div class="rsl"><div class="rsd" style="background:var(--g1)"></div>Eaten</div><div class="rsv" style="color:var(--g1)" id="s-eaten">1,480</div></div>
-            <div class="rstat"><div class="rsl"><div class="rsd" style="background:#f97316"></div>Burned</div><div class="rsv" style="color:#f97316" id="s-burned">320</div></div>
-            <div class="rstat"><div class="rsl"><div class="rsd" style="background:var(--g2)"></div>Remaining</div><div class="rsv" style="color:var(--g2)" id="s-remain">940</div></div>
+          <div class="login-panel glass login-card">
+            <h2>Sign in</h2>
+            <label>Email<input type="email" placeholder="you@email.com" /></label>
+            <label>Password<input type="password" placeholder="••••••••" /></label>
+            <button class="magnetic-btn strong" id="login-btn">Login</button>
+            <button class="magnetic-btn">Signup</button>
           </div>
         </div>
-      </div>
-      <div class="card">
-        <div class="ch">💊 Macronutrients</div>
-        <div class="mrow"><div class="ml">Protein</div><div class="mt2"><div class="mf" id="mf-p" style="width:72%;background:linear-gradient(90deg,#378ADD,#85B7EB)"></div></div><div class="mv" id="mv-p">108 / 150g</div></div>
-        <div class="mrow"><div class="ml">Carbs</div><div class="mt2"><div class="mf" id="mf-c" style="width:58%;background:linear-gradient(90deg,#f97316,#fb923c)"></div></div><div class="mv" id="mv-c">162 / 280g</div></div>
-        <div class="mrow"><div class="ml">Fats</div><div class="mt2"><div class="mf" id="mf-f" style="width:45%;background:linear-gradient(90deg,#9b6dff,#c4b5fd)"></div></div><div class="mv" id="mv-f">31 / 70g</div></div>
-      </div>
-      <div class="card">
-        <div class="ch">💧 Water Intake <span style="margin-left:auto;font-size:10px;font-weight:400;color:var(--text2)" id="water-lbl">5 / 8 glasses</span></div>
-        <div class="wdrops" id="wdrops"></div>
-        <div style="text-align:center;font-size:9px;color:var(--text3);margin-top:5px">Tap drops to log water</div>
-      </div>
-      <div class="card">
-        <div class="ch">📊 This Week</div>
-        <div class="wk-row" id="wkbars"></div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3)" id="wklbls"></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:6px;text-align:center">Goal: <span id="week-goal-disp" style="color:var(--g1);font-weight:700">2,100</span> kcal/day</div>
-      </div>
-      <div class="card">
-        <div class="ch">📈 Calorie Trend</div>
-        <div class="chwrap"><canvas id="trendC"></canvas></div>
-      </div>
-    </div>
+      </section>
 
-    <!-- ── MEALS ── -->
-    <div class="pg" id="pg-meals">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="pg-title" style="margin-bottom:0">Food Log</div>
-        <div style="font-size:10px;color:var(--text2)" id="meals-date"></div>
-      </div>
-      <div style="background:var(--bg3);border-radius:12px;padding:9px 11px;margin-bottom:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;transition:var(--transition)">
-        <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--g1)" id="m-total-cal">1,480</div><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px">Cal</div></div>
-        <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--g2)" id="m-total-prot">108g</div><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px">Protein</div></div>
-        <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:#f97316" id="m-total-carb">162g</div><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px">Carbs</div></div>
-        <div style="text-align:center"><div style="font-size:14px;font-weight:800;color:var(--g3)" id="m-total-fat">31g</div><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px">Fats</div></div>
-      </div>
-      <div class="card" id="meal-breakfast">
-        <div class="mtype-hd"><div class="mtype-n">🌅 Breakfast</div><div class="mtype-c" id="bfcal">420 kcal</div></div>
-        <div id="bf-items">
-          <div class="mitem"><div><div class="min">Greek Yogurt Bowl</div><div class="mim">P: 18g · C: 32g · F: 6g</div></div><div style="display:flex;align-items:center;gap:6px"><div class="mic">245</div><span onclick="removeMealItem(this,245)" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">×</span></div></div>
-          <div class="mitem"><div><div class="min">Banana</div><div class="mim">P: 1g · C: 27g · F: 0g</div></div><div style="display:flex;align-items:center;gap:6px"><div class="mic">89</div><span onclick="removeMealItem(this,89)" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">×</span></div></div>
-          <div class="mitem"><div><div class="min">Black Coffee</div><div class="mim">P: 0g · C: 0g · F: 0g</div></div><div style="display:flex;align-items:center;gap:6px"><div class="mic">5</div><span onclick="removeMealItem(this,5)" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">×</span></div></div>
-        </div>
-        <button class="addbtn" onclick="openModal('Breakfast')">+ Add to Breakfast</button>
-      </div>
-      <div class="card" id="meal-lunch">
-        <div class="mtype-hd"><div class="mtype-n">☀️ Lunch</div><div class="mtype-c" id="lunchcal">650 kcal</div></div>
-        <div id="lunch-items">
-          <div class="mitem"><div><div class="min">Grilled Chicken Salad</div><div class="mim">P: 45g · C: 18g · F: 12g</div></div><div style="display:flex;align-items:center;gap:6px"><div class="mic">362</div><span onclick="removeMealItem(this,362)" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">×</span></div></div>
-          <div class="mitem"><div><div class="min">Brown Rice (150g)</div><div class="mim">P: 4g · C: 52g · F: 1g</div></div><div style="display:flex;align-items:center;gap:6px"><div class="mic">182</div><span onclick="removeMealItem(this,182)" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">×</span></div></div>
-        </div>
-        <button class="addbtn" onclick="openModal('Lunch')">+ Add to Lunch</button>
-      </div>
-      <div class="card">
-        <div class="mtype-hd"><div class="mtype-n">🌙 Dinner</div><div class="mtype-c" id="dinnercal">410 kcal</div></div>
-        <div id="dinner-items">
-          <div class="mitem"><div><div class="min">Salmon with Vegetables</div><div class="mim">P: 38g · C: 22g · F: 14g</div></div><div style="display:flex;align-items:center;gap:6px"><div class="mic">368</div><span onclick="removeMealItem(this,368)" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1">×</span></div></div>
-        </div>
-        <button class="addbtn" onclick="openModal('Dinner')">+ Add to Dinner</button>
-      </div>
-      <div class="card">
-        <div class="mtype-hd"><div class="mtype-n">🍎 Snacks</div><div class="mtype-c" id="snackcal">0 kcal</div></div>
-        <div id="snack-items"></div>
-        <button class="addbtn" onclick="openModal('Snack')">+ Add Snack</button>
-      </div>
+      <section id="page-dashboard" class="page">
+        <header class="page-head">
+          <h2>Dashboard</h2>
+          <button class="magnetic-btn strong">Save Day</button>
+        </header>
 
-    </div>
+        <div class="bento-grid">
+          <article class="glass card stat-card" data-delay="0">
+            <h3>Calories consumed</h3>
+            <p class="kpi" id="kpi-consumed">1,840</p>
+          </article>
+          <article class="glass card stat-card" data-delay="100">
+            <h3>Remaining calories</h3>
+            <p class="kpi" id="kpi-remaining">360</p>
+          </article>
+          <article class="glass card stat-card" data-delay="200">
+            <h3>Protein intake</h3>
+            <p class="kpi">132g</p>
+          </article>
+          <article class="glass card stat-card" data-delay="300">
+            <h3>Goal progress</h3>
+            <p class="kpi">84%</p>
+          </article>
 
-    <!-- ── BMI + PLANNER ── -->
-    <div class="pg" id="pg-bmi">
-      <div class="pg-title">BMI &amp; Calorie Planner</div>
-      <div class="card">
-        <div class="ch">⚖️ BMI Calculator</div>
-        <div class="unit-tgl">
-          <div class="utn on" id="u-metric" onclick="setUnit('metric')">Metric (kg / cm)</div>
-          <div class="utn" id="u-imperial" onclick="setUnit('imperial')">Imperial (lb / in)</div>
-        </div>
-        <div class="frow2" style="margin-bottom:10px">
-          <div class="fw"><label class="fl" id="lbl-h">Height (cm)</label><input class="fi" id="bmi-h" type="number" value="175" oninput="calcBMI()"></div>
-          <div class="fw"><label class="fl" id="lbl-w">Weight (kg)</label><input class="fi" id="bmi-w" type="number" value="78" oninput="calcBMI()"></div>
-        </div>
-        <div class="bmi-hero">
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div>
-              <div class="bmi-big" id="bmi-score">25.5</div>
-              <div style="font-size:13px;font-weight:800;margin-top:2px" id="bmi-cat-text" style="color:#facc15">Overweight</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.5;max-width:200px" id="bmi-detail">Slightly above healthy range. A moderate calorie deficit + regular cardio is recommended.</div>
+          <article class="glass card span-3 row-2">
+            <h3>Weekly Calories Trend</h3>
+            <svg id="weekly-chart" viewBox="0 0 300 120" aria-label="weekly chart"></svg>
+          </article>
+
+          <article class="glass card span-2 row-2">
+            <h3>Macro Distribution</h3>
+            <div id="macro-pie" class="macro-pie" role="img" aria-label="macro pie chart"></div>
+            <div class="legend">
+              <span><i style="--c:#7c3aed"></i>Protein</span>
+              <span><i style="--c:#22d3ee"></i>Carbs</span>
+              <span><i style="--c:#f472b6"></i>Fat</span>
             </div>
+          </article>
+
+          <article class="glass card span-2">
+            <h3>AI Insight</h3>
+            <p class="insight">Protein intake is below target today. Add one high-protein snack to close the gap.</p>
+          </article>
+
+          <article class="glass card span-3">
+            <h3>Recent Meals</h3>
+            <ul class="meal-list">
+              <li><span>Greek yogurt bowl</span><strong>310 kcal</strong></li>
+              <li><span>Chicken salad wrap</span><strong>480 kcal</strong></li>
+              <li><span>Protein smoothie</span><strong>260 kcal</strong></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-add-meal" class="page">
+        <header class="page-head"><h2>Log Meal</h2></header>
+        <form class="glass meal-form">
+          <label>Food name<input type="text" placeholder="e.g. Grilled Salmon" /></label>
+          <div class="grid-2">
+            <label>Calories<input type="number" placeholder="450" /></label>
+            <label>Protein (g)<input type="number" placeholder="35" /></label>
+            <label>Carbs (g)<input type="number" placeholder="22" /></label>
+            <label>Fat (g)<input type="number" placeholder="16" /></label>
           </div>
-          <div class="bmi-scale-bar"><div class="bmi-ptr" id="bmi-ptr" style="left:52%"></div></div>
-          <div class="bmi-sc-lbl"><span>16</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
-          <div class="bmi-cats-g">
-            <div class="bmi-cat-c" style="background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.2)"><div style="font-size:9px;font-weight:700;color:#22d3ee">Under</div><div style="font-size:8px;color:var(--text3)">Below 18.5</div></div>
-            <div class="bmi-cat-c" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2)"><div style="font-size:9px;font-weight:700;color:#4ade80">Normal</div><div style="font-size:8px;color:var(--text3)">18.5–24.9</div></div>
-            <div class="bmi-cat-c" style="background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.2)"><div style="font-size:9px;font-weight:700;color:#facc15">Over</div><div style="font-size:8px;color:var(--text3)">25–29.9</div></div>
-            <div class="bmi-cat-c" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)"><div style="font-size:9px;font-weight:700;color:#ef4444">Obese</div><div style="font-size:8px;color:var(--text3)">30+</div></div>
-          </div>
-          <div class="formula-box">
-            <div class="fbox-title">How BMI is calculated</div>
-            <div class="fbox-code" id="bmi-formula">BMI = weight(kg) ÷ height(m)²</div>
-            <div class="fbox-res" id="bmi-calc">= 78 ÷ (1.75)² = 25.5</div>
-            <div class="fbox-note">BMI is a screening tool — not a direct fat measure. It does not account for muscle mass, bone density, or age. Athletes may show high BMI despite being lean.</div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="ch">🔥 Calorie Plan for Your Goal</div>
-        <div class="frow2" style="margin-bottom:8px">
-          <div class="fw"><label class="fl">Gender</label><select class="fsel" id="p-gen" onchange="calcPlan()"><option value="m">Male</option><option value="f">Female</option></select></div>
-          <div class="fw"><label class="fl">Age</label><input class="fi" id="p-age" type="number" value="28" min="10" max="100" oninput="calcPlan()"></div>
-        </div>
-        <div class="fw" style="margin-bottom:10px"><label class="fl">Activity Level</label>
-          <select class="fsel" id="p-act" onchange="calcPlan()">
-            <option value="1.2">Sedentary (desk job, no exercise)</option>
-            <option value="1.375">Lightly active (1–3 days/week)</option>
-            <option value="1.55" selected>Moderately active (3–5 days)</option>
-            <option value="1.725">Very active (6–7 days)</option>
-            <option value="1.9">Extra active (physical job)</option>
-          </select>
-        </div>
-        <div class="plan-tabs">
-          <button class="ptab" id="ptab-lose" onclick="setPG('lose')">Lose Weight</button>
-          <button class="ptab on" id="ptab-maintain" onclick="setPG('maintain')">Maintain</button>
-          <button class="ptab" id="ptab-gain" onclick="setPG('gain')">Gain Muscle</button>
-        </div>
-        <div class="plan-cards">
-          <div class="plan-c feat">
-            <div class="plan-tag" style="background:rgba(0,232,122,0.15);color:var(--g1)">REC</div>
-            <div class="plan-n" style="color:var(--g1)" id="pc-rec">2,100</div>
-            <div class="plan-lbl" id="pc-lbl">Daily target</div>
-            <div class="plan-det" id="pc-det">Balanced and sustainable.</div>
-          </div>
-          <div class="plan-c alt">
-            <div class="plan-tag" style="background:rgba(0,194,255,0.12);color:var(--g2)">AGG</div>
-            <div class="plan-n" style="color:var(--g2)" id="pc-agg">1,600</div>
-            <div class="plan-lbl" id="pa-lbl">Faster approach</div>
-            <div class="plan-det" id="pa-det">Monitor closely.</div>
-          </div>
-        </div>
-        <div style="background:var(--input-bg);border-radius:11px;padding:11px;margin-bottom:10px;transition:var(--transition)">
-          <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:7px;text-transform:uppercase;letter-spacing:0.4px">Calorie Breakdown</div>
-          <div class="bdown-row"><div class="bdl"><div class="bdd" style="background:var(--g3)"></div>BMR (base metabolic rate)</div><div class="bdv" id="bd-bmr">1,852 kcal</div></div>
-          <div class="bdown-row"><div class="bdl"><div class="bdd" style="background:var(--g2)"></div>TDEE (maintenance calories)</div><div class="bdv" id="bd-tdee">2,871 kcal</div></div>
-          <div class="bdown-row"><div class="bdl"><div class="bdd" style="background:var(--g1)"></div>Goal adjustment</div><div class="bdv" id="bd-adj">No change</div></div>
-          <div class="bdown-row"><div class="bdl" style="font-weight:700;color:var(--text)"><div class="bdd" style="background:var(--g1)"></div>Your daily target</div><div class="bdv" style="color:var(--g1)" id="bd-target">2,871 kcal</div></div>
-        </div>
-        <div class="formula-box">
-          <div class="fbox-title">Mifflin-St Jeor BMR Formula</div>
-          <div class="fbox-code" id="msj-f">Men: BMR = (10 × kg) + (6.25 × cm) − (5 × age) + 5</div>
-          <div class="fbox-res" id="msj-c">= (10×78) + (6.25×175) − (5×28) + 5 = 1,852</div>
-          <div class="fbox-note">TDEE = BMR × Activity Factor. Subtract 500 kcal/day for ~0.5 kg/week loss. Never go below 1,200 kcal/day (1,000 for women) without medical supervision.</div>
-        </div>
-      </div>
-    </div>
+          <label class="upload">Drop meal image (optional)<input type="file" /></label>
+          <button class="magnetic-btn strong" type="button">Save Meal</button>
+        </form>
+      </section>
 
-    <!-- ── WORKOUT ── -->
-    <div class="pg" id="pg-workout">
-      <div class="pg-title">Workout Tracker</div>
-      <div class="card">
-        <div class="ch">🏋️ Choose Workout Type</div>
-        <div class="wkgrid">
-          <div class="wkcard sel" onclick="selWk(this,'Running',8)"><div class="wki">🏃</div><div class="wkn">Running</div><div class="wkr">~8 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Cycling',6)"><div class="wki">🚴</div><div class="wkn">Cycling</div><div class="wkr">~6 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Gym',7)"><div class="wki">💪</div><div class="wkn">Gym</div><div class="wkr">~7 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Walking',4)"><div class="wki">🚶</div><div class="wkn">Walking</div><div class="wkr">~4 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Yoga',3)"><div class="wki">🧘</div><div class="wkn">Yoga</div><div class="wkr">~3 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Swimming',9)"><div class="wki">🏊</div><div class="wkn">Swimming</div><div class="wkr">~9 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'HIIT',10)"><div class="wki">⚡</div><div class="wkn">HIIT</div><div class="wkr">~10 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Hiking',5)"><div class="wki">🧗</div><div class="wkn">Hiking</div><div class="wkr">~5 kcal/min</div></div>
-          <div class="wkcard" onclick="selWk(this,'Dancing',5)"><div class="wki">💃</div><div class="wkn">Dancing</div><div class="wkr">~5 kcal/min</div></div>
+      <section id="page-analytics" class="page">
+        <header class="page-head"><h2>Analytics</h2></header>
+        <div class="glass card">
+          <p>Advanced analytics panel with smooth transitions and trend insights.</p>
         </div>
-        <div class="ch" style="margin-bottom:5px">⏱️ Duration</div>
-        <div class="dur-w">
-          <input class="dur-sl" type="range" min="5" max="120" value="40" step="5" id="dur-sl" oninput="updBurn()">
-          <div class="dur-v" id="dur-v">40 min</div>
+      </section>
+
+      <section id="page-history" class="page">
+        <header class="page-head"><h2>History Timeline</h2></header>
+        <div class="timeline">
+          <article class="glass timeline-item"><h4>Apr 17</h4><p>2,140 kcal • P 128 / C 190 / F 70</p></article>
+          <article class="glass timeline-item"><h4>Apr 16</h4><p>1,980 kcal • P 136 / C 160 / F 68</p></article>
+          <article class="glass timeline-item"><h4>Apr 15</h4><p>2,060 kcal • P 121 / C 200 / F 64</p></article>
         </div>
-        <div class="burn-box">
-          <div class="burn-n" id="burn-n">320</div>
-          <div class="burn-l">estimated calories burned</div>
-          <div style="margin-top:10px"><button class="btn-g" style="width:auto;padding:9px 20px;font-size:12px" onclick="logWk()">✓ Log Workout</button></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="ch">📅 Recent Workouts</div>
-        <div id="recent-workouts">
-          <div class="mitem"><div><div class="min">Running · 35 min</div><div class="mim">Yesterday</div></div><div class="mic" style="color:#f97316">280 kcal</div></div>
-          <div class="mitem"><div><div class="min">Gym · 60 min</div><div class="mim">2 days ago</div></div><div class="mic" style="color:#f97316">420 kcal</div></div>
-          <div class="mitem"><div><div class="min">Yoga · 45 min</div><div class="mim">3 days ago</div></div><div class="mic" style="color:#f97316">135 kcal</div></div>
-        </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- ── PROGRESS ── -->
-    <div class="pg" id="pg-progress">
-      <div class="pg-title">Progress Analytics</div>
-      <div class="prog-g">
-        <div class="pmet"><div class="pmn" style="color:var(--g1)" id="prog-wt">76.2 kg</div><div class="pml">Current Weight</div><div class="pmc" style="color:var(--g1)">↓ 1.8 kg this month</div></div>
-        <div class="pmet"><div class="pmn" style="color:var(--g2)">78%</div><div class="pml">Goal Progress</div><div class="pmc" style="color:var(--g1)">↑ On track</div></div>
-        <div class="pmet"><div class="pmn" style="color:var(--g3)" id="streak-num">18</div><div class="pml">Day Streak</div><div class="pmc" style="color:var(--g1)">↑ Personal best</div></div>
-        <div class="pmet"><div class="pmn" style="color:#f97316" id="avg-cal">1,640</div><div class="pml">Avg Daily Cal</div><div class="pmc" style="color:var(--g1)">↓ 110 vs last wk</div></div>
-      </div>
-      <div class="card">
-        <div class="ch">📉 Weight History</div>
-        <div style="margin-bottom:8px;display:flex;gap:6px;align-items:center">
-          <div style="font-size:11px;color:var(--text2)">Log today's weight:</div>
-          <input class="fi" id="weight-input" type="number" step="0.1" value="76.2" style="width:80px;padding:6px 8px;font-size:12px">
-          <button onclick="logWeight()" class="btn-g" style="width:auto;padding:6px 12px;font-size:11px">Log</button>
-        </div>
-        <div class="chwrap"><canvas id="wtC"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="ch">🎯 Goal Tracker</div>
-        <div class="pbar-w"><div class="pbar-hd"><div class="pbar-l">Target weight (72 kg)</div><div class="pbar-v" style="color:var(--g1)">78%</div></div><div class="pbar-tr"><div class="pbar-f" style="width:78%;background:linear-gradient(90deg,var(--g1),var(--g2))"></div></div></div>
-        <div class="pbar-w"><div class="pbar-hd"><div class="pbar-l">Weekly workouts (<span id="wk-done">4</span>/5)</div><div class="pbar-v" style="color:var(--g2)" id="wk-pct">80%</div></div><div class="pbar-tr"><div class="pbar-f" id="wk-bar" style="width:80%;background:linear-gradient(90deg,var(--g2),var(--g3))"></div></div></div>
-        <div class="pbar-w"><div class="pbar-hd"><div class="pbar-l">Daily calorie consistency</div><div class="pbar-v" style="color:var(--g3)">70%</div></div><div class="pbar-tr"><div class="pbar-f" style="width:70%;background:linear-gradient(90deg,var(--g3),#f97316)"></div></div></div>
-      </div>
-      <div class="card">
-        <div class="ch">🏅 Earned Badges</div>
-        <div class="bdg-row">
-          <div class="bdg earned"><div class="bdg-em">🔥</div><div class="bdg-l">7-day</div></div>
-          <div class="bdg earned"><div class="bdg-em">💧</div><div class="bdg-l">Hydrated</div></div>
-          <div class="bdg earned"><div class="bdg-em">⚖️</div><div class="bdg-l">−2 kg!</div></div>
-          <div class="bdg" style="opacity:0.3"><div class="bdg-em">🏆</div><div class="bdg-l">−5 kg</div></div>
-          <div class="bdg" style="opacity:0.3"><div class="bdg-em">🌟</div><div class="bdg-l">30 days</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── HEALTH TIPS ── -->
-    <div class="pg" id="pg-tips">
-      <div class="pg-title">Health Tips</div>
-      <div id="tips-container"></div>
-    </div>
-
-    <!-- ── SETTINGS ── -->
-    <div class="pg" id="pg-settings">
-      <div style="text-align:center;margin-bottom:14px">
-        <div class="sav">AJ</div>
-        <div style="font-size:15px;font-weight:800;color:var(--text)">Alex Johnson</div>
-        <div style="font-size:11px;color:var(--text2)">alex@example.com</div>
-        <div style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,232,122,0.1);border:1px solid rgba(0,232,122,0.2);border-radius:20px;padding:3px 9px;font-size:9px;font-weight:700;color:var(--g1);margin-top:5px;letter-spacing:0.4px">PRO MEMBER</div>
-      </div>
-
-      <div class="ssect">Profile</div>
-      <div class="sitem" onclick="showEditProfile()">
-        <div class="sl"><div class="si">📏</div><div><div class="st">Height</div></div></div>
-        <div style="display:flex;align-items:center;gap:6px"><div class="sv" id="prof-height">175 cm</div><div style="color:var(--text3);font-size:12px">›</div></div>
-      </div>
-      <div class="sitem" onclick="showEditProfile()">
-        <div class="sl"><div class="si">⚖️</div><div><div class="st">Weight</div></div></div>
-        <div style="display:flex;align-items:center;gap:6px"><div class="sv" id="prof-weight">76.2 kg</div><div style="color:var(--text3);font-size:12px">›</div></div>
-      </div>
-      <div class="sitem">
-        <div class="sl"><div class="si">🎯</div><div><div class="st">Daily Calorie Target</div></div></div>
-        <div class="sv" id="prof-target">2,100 kcal</div>
-      </div>
-      <div class="sitem">
-        <div class="sl"><div class="si">📐</div><div><div class="st">BMI</div></div></div>
-        <div class="sv" id="prof-bmi" style="color:#facc15">25.5 — Overweight</div>
-      </div>
-
-      <div class="ssect">Appearance</div>
-      <div class="sitem" onclick="toggleTheme()">
-        <div class="sl"><div class="si" id="theme-icon">🌙</div><div><div class="st" id="theme-label">Dark Mode</div><div class="ss">Currently active</div></div></div>
-        <div class="tgl on" id="theme-tgl"></div>
-      </div>
-
-      <div class="ssect">Notifications</div>
-      <div class="sitem">
-        <div class="sl"><div class="si">🍽️</div><div><div class="st">Meal Reminders</div><div class="ss">Remind me to log meals</div></div></div>
-        <div class="tgl on" onclick="this.classList.toggle('on');showToast('Meal reminders updated!')"></div>
-      </div>
-      <div class="sitem">
-        <div class="sl"><div class="si">💧</div><div><div class="st">Water Reminders</div><div class="ss">Every 2 hours</div></div></div>
-        <div class="tgl on" onclick="this.classList.toggle('on');showToast('Water reminders updated!')"></div>
-      </div>
-      <div class="sitem">
-        <div class="sl"><div class="si">💪</div><div><div class="st">Workout Reminders</div><div class="ss">Daily at 6:00 PM</div></div></div>
-        <div class="tgl" onclick="this.classList.toggle('on');showToast('Workout reminder set!')"></div>
-      </div>
-      <div class="sitem">
-        <div class="sl"><div class="si">⚠️</div><div><div class="st">Calorie Limit Warning</div><div class="ss">Alert at 90% of goal</div></div></div>
-        <div class="tgl on" onclick="this.classList.toggle('on');showToast('Warning setting updated!')"></div>
-      </div>
-
-      <div class="ssect">Goals</div>
-      <div class="sitem" onclick="showPg('bmi',document.querySelectorAll('.ni')[2])">
-        <div class="sl"><div class="si">🔥</div><div><div class="st">Calorie Goal &amp; Plan</div><div class="ss">Adjust using BMI planner</div></div></div>
-        <div style="color:var(--text3);font-size:12px">›</div>
-      </div>
-
-      <div class="ssect">Account</div>
-      <div class="sitem" onclick="exportData()">
-        <div class="sl"><div class="si">📤</div><div><div class="st">Export Data</div><div class="ss">Download your food &amp; workout logs as CSV</div></div></div>
-        <div style="color:var(--g1);font-size:12px;font-weight:700">↓</div>
-      </div>
-      <div class="sitem" id="signout-btn" onclick="doSignOut()" style="cursor:pointer;border-color:rgba(239,68,68,0.25);background:rgba(239,68,68,0.05)">
-        <div class="sl"><div class="si">🚪</div><div><div class="st" style="color:#ef4444" id="signout-label">Sign Out</div><div class="ss">Tap to sign out of Calorix</div></div></div>
-        <div style="color:#ef4444;font-size:13px">›</div>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-
-  <!-- BOTTOM NAV (7 tabs) -->
-  <div class="bnav">
-    <div class="ni on" onclick="showPg('home',this)"><div class="ni-i">🏠</div><div class="ni-l">Home</div></div>
-    <div class="ni" onclick="showPg('meals',this)"><div class="ni-i">🍽️</div><div class="ni-l">Meals</div></div>
-    <div class="ni" onclick="showPg('bmi',this)"><div class="ni-i">📐</div><div class="ni-l">BMI</div></div>
-    <div class="ni" onclick="showPg('workout',this)"><div class="ni-i">💪</div><div class="ni-l">Workout</div></div>
-    <div class="ni" onclick="showPg('progress',this)"><div class="ni-i">📊</div><div class="ni-l">Progress</div></div>
-    <div class="ni" onclick="showPg('tips',this)"><div class="ni-i">💡</div><div class="ni-l">Tips</div></div>
-    <div class="ni" onclick="showPg('settings',this)"><div class="ni-i">⚙️</div><div class="ni-l">Profile</div></div>
+      <section id="page-settings" class="page">
+        <header class="page-head"><h2>Settings</h2></header>
+        <div class="glass card"><p>Profile and app preferences live here.</p></div>
+      </section>
+    </main>
   </div>
 
-</div><!-- /main -->
-
-
-
-<!-- ════════════════════ MANUAL ADD FOOD MODAL ════════════════════ -->
-<div class="modal-bg" id="food-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-h">Add Food — <span id="modal-type">Breakfast</span></div>
-    <div class="mtabs" id="modal-meal-tabs">
-      <button class="mt on" onclick="setMT(this)">Breakfast</button>
-      <button class="mt" onclick="setMT(this)">Lunch</button>
-      <button class="mt" onclick="setMT(this)">Dinner</button>
-      <button class="mt" onclick="setMT(this)">Snack</button>
-    </div>
-    <input class="fsrch" id="fsrch" placeholder="Search food database..." oninput="doSearch(this.value)">
-    <div style="font-size:9px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px">Quick Add</div>
-    <div class="fchips-w" id="fchips"></div>
-    <div class="frow2" style="margin-bottom:8px">
-      <div class="fw"><label class="fl">Food name</label><input class="fi" id="fn" placeholder="e.g. Chicken breast"></div>
-      <div class="fw"><label class="fl">Calories</label><input class="fi" id="fc" type="number" placeholder="kcal" min="0"></div>
-    </div>
-    <div class="frow2" style="margin-bottom:12px">
-      <div class="fw"><label class="fl">Protein (g)</label><input class="fi" id="fp" type="number" placeholder="g" min="0"></div>
-      <div class="fw"><label class="fl">Carbs (g)</label><input class="fi" id="fcarb" type="number" placeholder="g" min="0"></div>
-    </div>
-    <button class="btn-g" onclick="submitFood()">Add Food</button>
-    <button style="width:100%;background:transparent;border:none;color:var(--text2);padding:9px;cursor:pointer;font-size:12px;font-family:inherit;margin-top:4px" onclick="closeModal()">Cancel</button>
-  </div>
-</div>
-
-<!-- ════════════════════ EDIT PROFILE MODAL ════════════════════ -->
-<div class="modal-bg" id="profile-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-h">Edit Profile</div>
-    <div class="frow2">
-      <div class="fw"><label class="fl">Height (cm)</label><input class="fi" id="edit-height" type="number" value="175"></div>
-      <div class="fw"><label class="fl">Weight (kg)</label><input class="fi" id="edit-weight" type="number" value="76.2" step="0.1"></div>
-    </div>
-    <div class="frow2">
-      <div class="fw"><label class="fl">Age</label><input class="fi" id="edit-age" type="number" value="28"></div>
-      <div class="fw"><label class="fl">Gender</label><select class="fsel" id="edit-gender"><option value="m">Male</option><option value="f">Female</option></select></div>
-    </div>
-    <div class="fw"><label class="fl">Fitness Goal</label>
-      <select class="fsel" id="edit-goal">
-        <option value="lose">Lose Weight</option>
-        <option value="maintain" selected>Maintain Weight</option>
-        <option value="gain">Gain Muscle</option>
-      </select>
-    </div>
-    <div class="fw"><label class="fl">Daily Calorie Target (kcal)</label><input class="fi" id="edit-calories" type="number" value="2100"></div>
-    <button class="btn-g" onclick="saveProfile()">Save Changes</button>
-    <button style="width:100%;background:transparent;border:none;color:var(--text2);padding:9px;cursor:pointer;font-size:12px;font-family:inherit;margin-top:4px" onclick="document.getElementById('profile-modal').classList.remove('on')">Cancel</button>
-  </div>
-</div>
-
-</div><!-- /app -->
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
