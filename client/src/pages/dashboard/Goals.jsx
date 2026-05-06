@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import api from '@/lib/api';
 
-export default function Goals({ profile, user }) {
+export default function Goals({ profile, user, onProfileUpdate }) {
   const [weight, setWeight] = useState(profile?.weight || 75);
   const [height, setHeight] = useState(profile?.height || 175);
   const [age, setAge] = useState(profile?.age || 25);
@@ -30,16 +31,13 @@ export default function Goals({ profile, user }) {
 
   const handleSaveProfile = async () => {
     if (!user) return;
-    
     try {
       const calorieTarget = calculateTarget();
       const updatedProfile = {
         ...profile,
         clerk_user_id: user.id,
         name: user.fullName || 'User',
-        weight: weight,
-        height: height,
-        age: age,
+        weight, height, age,
         goal_type: goal,
         calorie_target: calorieTarget,
         protein_target: Math.round(weight * 2.2),
@@ -47,18 +45,10 @@ export default function Goals({ profile, user }) {
         fats_target: Math.round((calorieTarget * 0.3) / 9),
         onboarding_completed: true
       };
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedProfile)
-      });
-
-      if (!response.ok) throw new Error('Failed to save profile to database');
-
+      await api.saveUser(updatedProfile);
       localStorage.setItem('calorix_profile', JSON.stringify(updatedProfile));
       toast.success('Goals updated successfully!');
-      setTimeout(() => window.location.reload(), 1000);
+      if (onProfileUpdate) onProfileUpdate();
     } catch (error) {
       console.error(error);
       toast.error('Failed to update goals.');

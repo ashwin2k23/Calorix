@@ -47,6 +47,15 @@ const pool = new Pool({
         FOREIGN KEY(user_id) REFERENCES users(clerk_user_id) ON DELETE CASCADE
       )
     `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS water_logs (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT REFERENCES users(clerk_user_id) ON DELETE CASCADE,
+        date DATE NOT NULL DEFAULT CURRENT_DATE,
+        amount_ml INTEGER DEFAULT 0,
+        UNIQUE(user_id, date)
+      )
+    `);
     console.log('✅ PostgreSQL Database Initialized!');
   } catch (err) {
     console.error('❌ Database initialization error:', err.message);
@@ -151,6 +160,38 @@ app.delete('/api/meals/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM meals WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'Meal deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── WATER TRACKING ────────────────────────────────────
+
+app.get('/api/water/:user_id', async (req, res) => {
+  const { date = new Date().toISOString().split('T')[0] } = req.query;
+  try {
+    const result = await pool.query(
+      'SELECT * FROM water_logs WHERE user_id = $1 AND date = $2',
+      [req.params.user_id, date]
+    );
+    res.json({ success: true, data: result.rows[0] || { amount_ml: 0 } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/water', async (req, res) => {
+  const { user_id, date, amount_ml } = req.body;
+  if (!user_id || amount_ml == null) {
+    return res.status(400).json({ success: false, error: 'Missing user_id or amount_ml' });
+  }
+  try {
+    await pool.query(`
+      INSERT INTO water_logs (user_id, date, amount_ml)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, date) DO UPDATE SET amount_ml = $3
+    `, [user_id, date || new Date().toISOString().split('T')[0], amount_ml]);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

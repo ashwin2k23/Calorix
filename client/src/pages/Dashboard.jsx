@@ -1,112 +1,176 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Utensils, Target, Sparkles, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Utensils, Target, Sparkles, UserCircle, Menu, X } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/clerk-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import Overview from './dashboard/Overview';
 import Meals from './dashboard/Meals';
 import Goals from './dashboard/Goals';
 import AIPlanner from './dashboard/AIPlanner';
 import Profile from './dashboard/Profile';
+import api from '@/lib/api';
+
+const NAV_ITEMS = [
+  { path: '',        label: 'Overview',    icon: <LayoutDashboard size={18} /> },
+  { path: 'meals',   label: 'Meals',       icon: <Utensils size={18} />        },
+  { path: 'goals',   label: 'Goals',       icon: <Target size={18} />          },
+  { path: 'planner', label: 'AI Planner',  icon: <Sparkles size={18} />        },
+  { path: 'profile', label: 'Profile',     icon: <UserCircle size={18} />      },
+];
 
 export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isLoaded } = useUser();
   const [profile, setProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!isLoaded || !user) return;
-      
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${user.id}`);
-        const data = await response.json();
-        
-        if (data.success && data.data && data.data.onboarding_completed) {
-          // Sync to localStorage for fast initial loads in children
-          localStorage.setItem('calorix_profile', JSON.stringify(data.data));
-          setProfile(data.data);
-        } else {
-          // Needs onboarding
-          localStorage.removeItem('calorix_profile');
-          navigate('/onboarding');
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        // Fallback to local storage if server is down temporarily
-        const storedProfile = localStorage.getItem('calorix_profile');
-        if (storedProfile) {
-          setProfile(JSON.parse(storedProfile));
-        } else {
-          navigate('/onboarding');
-        }
+  const refreshProfile = useCallback(async () => {
+    if (!isLoaded || !user) return;
+    try {
+      const data = await api.getUser(user.id);
+      if (data.success && data.data?.onboarding_completed) {
+        localStorage.setItem('calorix_profile', JSON.stringify(data.data));
+        setProfile(data.data);
+      } else {
+        localStorage.removeItem('calorix_profile');
+        navigate('/onboarding');
       }
-    };
-
-    fetchProfile();
+    } catch {
+      const stored = localStorage.getItem('calorix_profile');
+      if (stored) {
+        setProfile(JSON.parse(stored));
+      } else {
+        navigate('/onboarding');
+      }
+    } finally {
+      setLoadingProfile(false);
+    }
   }, [isLoaded, user, navigate]);
 
-  const navItems = [
-    { path: '', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-    { path: 'meals', label: 'Meals', icon: <Utensils size={20} /> },
-    { path: 'goals', label: 'Goals', icon: <Target size={20} /> },
-    { path: 'planner', label: 'AI Planner', icon: <Sparkles size={20} /> },
-    { path: 'profile', label: 'Profile', icon: <UserCircle size={20} /> },
-  ];
+  useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
-  if (!isLoaded || !profile) return <div className="min-h-screen bg-background flex items-center justify-center">Loading dashboard...</div>;
+  // Close sidebar when route changes
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+
+  if (!isLoaded || loadingProfile) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col md:flex-row">
+        <aside className="w-64 border-r border-white/10 bg-card/30 p-6 hidden md:flex flex-col">
+          <Skeleton className="h-8 w-32 mb-10" />
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+          </div>
+        </aside>
+        <main className="flex-1 p-6 md:p-10">
+          <Skeleton className="h-10 w-64 mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+          </div>
+          <Skeleton className="h-40 rounded-2xl" />
+        </main>
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const SidebarContent = () => (
+    <>
+      <div className="flex items-center gap-2 mb-10">
+        <span className="text-2xl">🔥</span>
+        <span className="text-xl font-extrabold bg-gradient-to-r from-primary to-[#00c2ff] bg-clip-text text-transparent">
+          Calorix
+        </span>
+      </div>
+
+      <nav className="flex-1 space-y-1.5">
+        {NAV_ITEMS.map((item) => {
+          const href = `/dashboard${item.path ? `/${item.path}` : ''}`;
+          const isActive = location.pathname === href;
+          return (
+            <Link key={item.path} to={href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm ${
+                isActive
+                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(0,232,122,0.08)]'
+                  : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+              }`}>
+              {item.icon}
+              <span className="font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div
+        className="mt-8 flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 cursor-pointer hover:border-white/10 transition-all group"
+        onClick={() => navigate('/dashboard/profile')}
+      >
+        <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-9 h-9' } }} />
+        <div className="overflow-hidden flex-1">
+          <p className="text-sm font-semibold truncate text-foreground group-hover:text-primary transition-colors">{user?.fullName || 'User'}</p>
+          <p className="text-xs text-muted-foreground truncate">{profile.goal_type}</p>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 border-r border-white/10 bg-card/30 backdrop-blur-md p-6 flex flex-col h-auto md:h-screen sticky top-0 z-10">
-        <div className="flex items-center gap-2 mb-10">
-          <span className="text-2xl">🔥</span>
-          <span className="text-xl font-extrabold bg-gradient-to-r from-primary to-[#00c2ff] bg-clip-text text-transparent">
-            Calorix
-          </span>
-        </div>
-
-        <nav className="flex-1 space-y-2">
-          {navItems.map((item) => {
-            const isActive = location.pathname === `/dashboard${item.path ? `/${item.path}` : ''}`;
-            return (
-              <Link
-                key={item.path}
-                to={`/dashboard${item.path ? `/${item.path}` : ''}`}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_rgba(0,232,122,0.1)]' 
-                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
-                }`}
-              >
-                {item.icon}
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        <div className="mt-10 flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 relative group">
-          <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-10 h-10" } }} />
-          <div className="overflow-hidden flex-1 cursor-pointer" onClick={() => navigate('/dashboard/profile')}>
-            <p className="text-sm font-semibold truncate text-foreground group-hover:text-primary transition-colors">{user?.fullName || 'User'}</p>
-            <p className="text-xs text-muted-foreground truncate">{profile.goal_type}</p>
-          </div>
-        </div>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 border-r border-white/10 bg-card/30 backdrop-blur-md p-6 flex-col h-screen sticky top-0 z-10">
+        <SidebarContent />
       </aside>
 
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-card/30 backdrop-blur-md sticky top-0 z-20">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🔥</span>
+          <span className="text-lg font-extrabold bg-gradient-to-r from-primary to-[#00c2ff] bg-clip-text text-transparent">Calorix</span>
+        </div>
+        <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all">
+          <Menu size={22} />
+        </button>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 h-full w-72 bg-background border-r border-white/10 p-6 flex flex-col z-40 md:hidden"
+            >
+              <button onClick={() => setSidebarOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5">
+                <X size={18} />
+              </button>
+              <SidebarContent />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-        <Routes>
-          <Route path="" element={<Overview profile={profile} user={user} />} />
-          <Route path="meals" element={<Meals profile={profile} user={user} />} />
-          <Route path="goals" element={<Goals profile={profile} user={user} />} />
-          <Route path="planner" element={<AIPlanner profile={profile} />} />
-          <Route path="profile" element={<Profile profile={profile} user={user} />} />
-        </Routes>
+      <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-y-auto min-h-0">
+        <ErrorBoundary>
+          <Routes>
+            <Route path=""        element={<Overview  profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
+            <Route path="meals"   element={<Meals     profile={profile} user={user} />} />
+            <Route path="goals"   element={<Goals     profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
+            <Route path="planner" element={<AIPlanner profile={profile} />} />
+            <Route path="profile" element={<Profile   profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );
 }
-
