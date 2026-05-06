@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Flame, Brain, Activity, Utensils } from 'lucide-react';
+import { Flame, Brain, Activity, Utensils, ArrowRight } from 'lucide-react';
+import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 
 export default function Landing() {
   const features = [
@@ -42,9 +43,24 @@ export default function Landing() {
             </span>
           </div>
           <div>
-            <Link to="/dashboard">
-              <Button variant="outline" className="rounded-full">Go to Dashboard</Button>
-            </Link>
+            <SignedIn>
+              <div className="flex items-center gap-4">
+                <Link to="/dashboard">
+                  <Button variant="outline" className="rounded-full">Dashboard</Button>
+                </Link>
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <div className="flex items-center gap-2">
+                <Link to="/sign-in">
+                  <Button variant="ghost" className="rounded-full hidden sm:inline-flex">Sign In</Button>
+                </Link>
+                <Link to="/sign-up">
+                  <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground">Get Started</Button>
+                </Link>
+              </div>
+            </SignedOut>
           </div>
         </nav>
 
@@ -54,17 +70,17 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-8 border border-primary/20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-8 border border-primary/20 shadow-[0_0_15px_rgba(0,194,255,0.1)]">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
               </span>
-              <span className="text-sm font-semibold">AI-Powered Indian Nutrition Assistant</span>
+              <span className="text-sm font-semibold tracking-wide uppercase">AI-Powered Indian Nutrition Assistant</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
               Track Calories. <br className="hidden md:block" />
-              <span className="bg-gradient-to-r from-primary to-[#00c2ff] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-[#00c2ff] to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent">
                 Eat Smart.
               </span>
             </h1>
@@ -74,16 +90,25 @@ export default function Landing() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/dashboard">
-                <Button size="lg" className="w-full sm:w-auto text-lg rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90 transition-opacity">
-                  Start Tracking
-                </Button>
-              </Link>
-              <Link to="/dashboard/planner">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg rounded-full px-8 border-white/10 hover:bg-white/5">
-                  Get Diet Plan
-                </Button>
-              </Link>
+              <SignedIn>
+                <Link to="/dashboard">
+                  <Button size="lg" className="w-full sm:w-auto text-lg rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,194,255,0.3)] hover:shadow-[0_0_30px_rgba(0,194,255,0.5)]">
+                    Go to Dashboard <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+              </SignedIn>
+              <SignedOut>
+                <Link to="/sign-up">
+                  <Button size="lg" className="w-full sm:w-auto text-lg rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,194,255,0.3)] hover:shadow-[0_0_30px_rgba(0,194,255,0.5)]">
+                    Start Tracking Free
+                  </Button>
+                </Link>
+                <Link to="/sign-in">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg rounded-full px-8 border-white/10 hover:bg-white/5 transition-colors">
+                    Sign In
+                  </Button>
+                </Link>
+              </SignedOut>
             </div>
           </motion.div>
 
@@ -94,12 +119,12 @@ export default function Landing() {
             className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-32 text-left"
           >
             {features.map((feature, idx) => (
-              <div key={idx} className="p-6 rounded-2xl bg-card/40 border border-white/5 backdrop-blur-md hover:border-primary/30 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+              <div key={idx} className="group p-6 rounded-3xl bg-card/40 border border-white/5 backdrop-blur-md hover:bg-card/60 hover:border-primary/30 transition-all hover:shadow-[0_8px_30px_rgba(0,194,255,0.1)]">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.desc}</p>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </motion.div>
@@ -113,4 +138,3 @@ export default function Landing() {
     </div>
   );
 }
-

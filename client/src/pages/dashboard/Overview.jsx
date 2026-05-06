@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { motion } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const weeklyData = [
   { day: 'Mon', calories: 1800 },
@@ -13,9 +15,18 @@ const weeklyData = [
 ];
 
 export default function Overview() {
+  const [loading, setLoading] = useState(true);
   const goal = 2100;
   const consumed = 1450;
   const remaining = goal - consumed;
+
+  useEffect(() => {
+    // Simulate data fetching delay
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <motion.div 
@@ -34,8 +45,17 @@ export default function Overview() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Calories Consumed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{consumed}</div>
-            <p className="text-xs text-muted-foreground mt-1">kcal eaten today</p>
+            {loading ? (
+              <div className="space-y-2 mt-2">
+                <Skeleton className="h-8 w-[100px]" />
+                <Skeleton className="h-3 w-[80px]" />
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-primary">{consumed}</div>
+                <p className="text-xs text-muted-foreground mt-1">kcal eaten today</p>
+              </>
+            )}
           </CardContent>
         </Card>
         
@@ -44,8 +64,17 @@ export default function Overview() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Calories Remaining</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#00c2ff]">{remaining}</div>
-            <p className="text-xs text-muted-foreground mt-1">out of {goal} kcal goal</p>
+            {loading ? (
+              <div className="space-y-2 mt-2">
+                <Skeleton className="h-8 w-[100px]" />
+                <Skeleton className="h-3 w-[80px]" />
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-[#00c2ff]">{remaining}</div>
+                <p className="text-xs text-muted-foreground mt-1">out of {goal} kcal goal</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -54,11 +83,21 @@ export default function Overview() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Protein Intake</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#9b6dff]">85g</div>
-            <p className="text-xs text-muted-foreground mt-1">out of 120g goal</p>
-            <div className="w-full h-1.5 bg-black/20 rounded-full mt-3 overflow-hidden">
-              <div className="h-full bg-[#9b6dff] w-[70%]" />
-            </div>
+            {loading ? (
+              <div className="space-y-3 mt-2">
+                <Skeleton className="h-8 w-[80px]" />
+                <Skeleton className="h-3 w-[100px]" />
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-[#9b6dff]">85g</div>
+                <p className="text-xs text-muted-foreground mt-1">out of 120g goal</p>
+                <div className="w-full h-1.5 bg-black/20 rounded-full mt-3 overflow-hidden">
+                  <div className="h-full bg-[#9b6dff] w-[70%]" />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -69,23 +108,27 @@ export default function Overview() {
             <CardTitle>Weekly Calorie Trend</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00e87a" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#00e87a" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="day" stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#162140', borderColor: '#3d5070', borderRadius: '8px' }}
-                  itemStyle={{ color: '#00e87a' }}
-                />
-                <Area type="monotone" dataKey="calories" stroke="#00e87a" strokeWidth={3} fillOpacity={1} fill="url(#colorCal)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <Skeleton className="w-full h-full rounded-xl" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00e87a" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#00e87a" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="day" stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#162140', borderColor: '#3d5070', borderRadius: '8px' }}
+                    itemStyle={{ color: '#00e87a' }}
+                  />
+                  <Area type="monotone" dataKey="calories" stroke="#00e87a" strokeWidth={3} fillOpacity={1} fill="url(#colorCal)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -93,25 +136,35 @@ export default function Overview() {
           <CardHeader>
             <CardTitle>Macros Breakdown</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
-             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[{ name: 'Macros', Carbs: 180, Protein: 85, Fat: 45 }]} layout="vertical" margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
-                <XAxis type="number" stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{fill: 'transparent'}}
-                  contentStyle={{ backgroundColor: '#162140', borderColor: '#3d5070', borderRadius: '8px' }}
-                />
-                <Bar dataKey="Carbs" fill="#f97316" radius={[0, 4, 4, 0]} barSize={20} />
-                <Bar dataKey="Protein" fill="#9b6dff" radius={[0, 4, 4, 0]} barSize={20} />
-                <Bar dataKey="Fat" fill="#00c2ff" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2 text-sm"><div className="w-3 h-3 rounded-full bg-[#f97316]" /> Carbs (180g)</div>
-              <div className="flex items-center gap-2 text-sm"><div className="w-3 h-3 rounded-full bg-[#9b6dff]" /> Protein (85g)</div>
-              <div className="flex items-center gap-2 text-sm"><div className="w-3 h-3 rounded-full bg-[#00c2ff]" /> Fat (45g)</div>
-            </div>
+          <CardContent className="h-[300px] flex flex-col">
+            {loading ? (
+              <div className="space-y-4 flex-1">
+                <Skeleton className="w-full h-[60px] rounded-md mt-8" />
+                <Skeleton className="w-full h-[60px] rounded-md" />
+                <Skeleton className="w-full h-[60px] rounded-md" />
+              </div>
+            ) : (
+              <>
+                 <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[{ name: 'Macros', Carbs: 180, Protein: 85, Fat: 45 }]} layout="vertical" margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
+                    <XAxis type="number" stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="name" stroke="#7a90b8" fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      cursor={{fill: 'transparent'}}
+                      contentStyle={{ backgroundColor: '#162140', borderColor: '#3d5070', borderRadius: '8px' }}
+                    />
+                    <Bar dataKey="Carbs" fill="#f97316" radius={[0, 4, 4, 0]} barSize={20} />
+                    <Bar dataKey="Protein" fill="#9b6dff" radius={[0, 4, 4, 0]} barSize={20} />
+                    <Bar dataKey="Fat" fill="#00c2ff" radius={[0, 4, 4, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-6 mt-4">
+                  <div className="flex items-center gap-2 text-sm"><div className="w-3 h-3 rounded-full bg-[#f97316]" /> Carbs (180g)</div>
+                  <div className="flex items-center gap-2 text-sm"><div className="w-3 h-3 rounded-full bg-[#9b6dff]" /> Protein (85g)</div>
+                  <div className="flex items-center gap-2 text-sm"><div className="w-3 h-3 rounded-full bg-[#00c2ff]" /> Fat (45g)</div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
