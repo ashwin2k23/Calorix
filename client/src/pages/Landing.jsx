@@ -54,10 +54,10 @@ export default function Landing() {
             <SignedOut>
               <div className="flex items-center gap-2">
                 <Link to="/sign-in">
-                  <Button variant="ghost" className="rounded-full hidden sm:inline-flex">Sign In</Button>
+                  <Button variant="ghost" className="rounded-full hidden sm:inline-flex">Login</Button>
                 </Link>
                 <Link to="/sign-up">
-                  <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground">Get Started</Button>
+                  <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground">Sign Up</Button>
                 </Link>
               </div>
             </SignedOut>
@@ -105,7 +105,7 @@ export default function Landing() {
                 </Link>
                 <Link to="/sign-in">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg rounded-full px-8 border-white/10 hover:bg-white/5 transition-colors">
-                    Sign In
+                    Login
                   </Button>
                 </Link>
               </SignedOut>

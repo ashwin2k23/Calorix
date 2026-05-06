@@ -3,6 +3,7 @@ import { SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/cl
 import { Toaster } from 'sonner';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   return (
@@ -24,6 +25,19 @@ function App() {
             <div className="flex items-center justify-center min-h-screen bg-background">
               <SignUp routing="path" path="/sign-up" />
             </div>
+          } 
+        />
+        <Route 
+          path="/onboarding" 
+          element={
+            <>
+              <SignedIn>
+                <Onboarding />
+              </SignedIn>
+              <SignedOut>
+                <RedirectToSignIn />
+              </SignedOut>
+            </>
           } 
         />
         <Route 
