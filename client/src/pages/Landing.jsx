@@ -128,11 +128,75 @@ export default function Landing() {
               </div>
             ))}
           </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+            className="mt-32"
+          >
+            <h2 className="text-3xl font-bold mb-12 text-center">Loved by Fitness Enthusiasts</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+              {[
+                { name: "Rahul S.", role: "Lost 10kg", quote: "Calorix's Indian food database is a lifesaver! Tracking my macro intake with local meals has never been this accurate." },
+                { name: "Priya M.", role: "Marathon Runner", quote: "The AI diet planner helped me optimize my pre-race carb loading. The insights are surprisingly accurate and tailored." },
+                { name: "Ankit K.", role: "Bodybuilder", quote: "Tracking my 150g protein target is so easy now. The macro split charts in the dashboard give me exactly what I need." }
+              ].map((testimonial, idx) => (
+                <div key={idx} className="p-6 rounded-3xl bg-card/40 border border-white/5 backdrop-blur-md">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                      {testimonial.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-bold">{testimonial.name}</h4>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-sm italic">"{testimonial.quote}"</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </main>
 
-        <footer className="mt-32 text-center text-sm text-muted-foreground border-t border-white/10 pt-8 pb-4">
-          <p>“This app provides general nutrition guidance and is not a substitute for professional medical advice.”</p>
-          <p className="mt-2">&copy; {new Date().getFullYear()} Calorix. All rights reserved.</p>
+        <footer className="mt-32 border-t border-white/10 pt-16 pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <Flame className="w-6 h-6 text-primary" />
+                <span className="text-xl font-bold bg-gradient-to-r from-primary to-[#00c2ff] bg-clip-text text-transparent">
+                  Calorix
+                </span>
+              </div>
+              <p className="text-muted-foreground text-sm max-w-sm mb-6">
+                Your AI-powered nutrition assistant tailored for Indian cuisine. Track calories, monitor macros, and achieve your fitness goals with smart insights.
+              </p>
+              <div className="text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground mb-2">Tech Stack</p>
+                <p>React, Vite, TailwindCSS, Supabase, Clerk Auth, OpenAI API</p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link to="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link></li>
+                <li><Link to="/dashboard/planner" className="hover:text-primary transition-colors">AI Planner</Link></li>
+                <li><Link to="/dashboard/meals" className="hover:text-primary transition-colors">Meal Tracker</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="text-center text-xs text-muted-foreground border-t border-white/5 pt-8">
+            <p className="mb-2">⚠️ DISCLAIMER: This app provides general nutrition guidance and is not a substitute for professional medical advice.</p>
+            <p>&copy; {new Date().getFullYear()} Calorix. All rights reserved.</p>
+          </div>
         </footer>
       </div>
     </div>

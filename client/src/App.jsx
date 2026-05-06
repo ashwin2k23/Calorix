@@ -1,11 +1,13 @@
 import { Routes, Route } from 'react-router-dom';
 import { SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { Toaster } from 'sonner';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
+      <Toaster position="top-center" theme="dark" richColors />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route 
