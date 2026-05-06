@@ -2,9 +2,10 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Flame, Brain, Activity, Utensils, ArrowRight } from 'lucide-react';
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, UserButton, useClerk } from '@clerk/clerk-react';
 
 export default function Landing() {
+  const { openSignIn, openSignUp } = useClerk();
   const features = [
     {
       icon: <Activity className="w-6 h-6 text-primary" />,
@@ -53,12 +54,8 @@ export default function Landing() {
             </SignedIn>
             <SignedOut>
               <div className="flex items-center gap-2">
-                <Link to="/sign-in">
-                  <Button variant="ghost" className="rounded-full hidden sm:inline-flex">Login</Button>
-                </Link>
-                <Link to="/sign-up">
-                  <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground">Sign Up</Button>
-                </Link>
+                <Button variant="ghost" className="rounded-full hidden sm:inline-flex" onClick={() => openSignIn()}>Login</Button>
+                <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => openSignUp()}>Sign Up</Button>
               </div>
             </SignedOut>
           </div>
@@ -98,16 +95,12 @@ export default function Landing() {
                 </Link>
               </SignedIn>
               <SignedOut>
-                <Link to="/sign-up">
-                  <Button size="lg" className="w-full sm:w-auto text-lg rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,194,255,0.3)] hover:shadow-[0_0_30px_rgba(0,194,255,0.5)]">
-                    Start Tracking Free
-                  </Button>
-                </Link>
-                <Link to="/sign-in">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg rounded-full px-8 border-white/10 hover:bg-white/5 transition-colors">
-                    Login
-                  </Button>
-                </Link>
+                <Button size="lg" className="w-full sm:w-auto text-lg rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,194,255,0.3)] hover:shadow-[0_0_30px_rgba(0,194,255,0.5)]" onClick={() => openSignUp()}>
+                  Start Tracking Free
+                </Button>
+                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg rounded-full px-8 border-white/10 hover:bg-white/5 transition-colors" onClick={() => openSignIn()}>
+                  Login
+                </Button>
               </SignedOut>
             </div>
           </motion.div>
