@@ -289,63 +289,182 @@ Be direct, practical, and mention a specific Indian food. Return only plain text
   }
 });
 
+// ── INTENT CLASSIFIER ─────────────────────────────────────────
+
+const NUTRITION_KEYWORDS = [
+  // Food & eating
+  'calorie', 'calories', 'kcal', 'food', 'meal', 'eat', 'eating', 'diet',
+  'nutrition', 'nutrient', 'protein', 'carb', 'carbs', 'carbohydrate', 'fat',
+  'fats', 'macro', 'macros', 'fiber', 'vitamin', 'mineral', 'micronutrient',
+  // Specific foods
+  'breakfast', 'lunch', 'dinner', 'snack', 'recipe', 'ingredient', 'cook',
+  'dosa', 'idli', 'roti', 'chapati', 'rice', 'dal', 'paneer', 'chicken',
+  'biryani', 'poha', 'upma', 'sabzi', 'curry', 'samosa', 'paratha',
+  'oats', 'egg', 'milk', 'curd', 'yogurt', 'banana', 'fruit', 'vegetable',
+  'salad', 'soup', 'smoothie', 'juice', 'tea', 'coffee', 'nuts', 'almonds',
+  // Fitness & body
+  'weight', 'fat', 'muscle', 'body', 'bmi', 'obesity', 'overweight',
+  'underweight', 'slim', 'lean', 'bulk', 'cut', 'shred', 'toned',
+  'fitness', 'gym', 'workout', 'exercise', 'training', 'cardio', 'lifting',
+  'strength', 'endurance', 'yoga', 'walk', 'run', 'jogging', 'cycling',
+  // Goals
+  'lose weight', 'weight loss', 'fat loss', 'gain muscle', 'muscle gain',
+  'maintain', 'goal', 'target', 'deficit', 'surplus', 'tdee', 'bmr',
+  // Health
+  'health', 'healthy', 'hydration', 'water', 'hydrate', 'detox',
+  'sugar', 'diabetes', 'cholesterol', 'blood pressure', 'thyroid',
+  'digestion', 'gut', 'metabolism', 'energy', 'stamina', 'immunity',
+  // Supplements & advice
+  'supplement', 'protein powder', 'whey', 'creatine', 'vitamin d',
+  'omega', 'multivitamin', 'pre-workout', 'post-workout', 'before gym',
+  'after gym', 'indian food', 'vegetarian', 'vegan', 'non-veg', 'keto',
+  'intermittent fasting', 'fasting', 'portion', 'serving',
+];
+
+// Explicit off-topic signals — high-confidence blocklist
+const OFF_TOPIC_KEYWORDS = [
+  'weather', 'temperature', 'rain', 'sunny', 'forecast', 'humidity',
+  'cricket', 'ipl', 'football', 'match', 'score', 'team', 'player', 'sports result',
+  'virat', 'kohli', 'dhoni', 'ronaldo', 'messi', 'sachin',
+  'politics', 'election', 'government', 'minister', 'president', 'prime minister',
+  'coding', 'programming', 'javascript', 'python', 'html', 'css', 'react',
+  'movie', 'film', 'actor', 'actress', 'bollywood', 'netflix', 'series',
+  'song', 'music', 'singer', 'album', 'spotify',
+  'joke', 'funny', 'humor', 'riddle', 'prank',
+  'history', 'war', 'empire', 'kingdom', 'ancient',
+  'geography', 'country', 'capital', 'continent', 'ocean',
+  'stock', 'market', 'share', 'invest', 'crypto', 'bitcoin',
+  'celebrity', 'famous', 'gossip', 'trending',
+  'translate', 'language', 'grammar', 'essay', 'poem',
+];
+
+/**
+ * Classify whether a message is nutrition/fitness related.
+ * Returns { isNutrition: boolean, confidence: number (0-100), reason: string }
+ */
+function classifyIntent(message) {
+  const lower = message.toLowerCase().trim();
+  const words = lower.split(/\s+/);
+
+  // Check explicit off-topic blocklist first (fast exit)
+  const offTopicHit = OFF_TOPIC_KEYWORDS.find(kw => lower.includes(kw));
+  if (offTopicHit) {
+    return { isNutrition: false, confidence: 5, reason: `off-topic keyword: "${offTopicHit}"` };
+  }
+
+  // Count nutrition keyword matches (weighted by word length — longer = more specific)
+  let score = 0;
+  let matchedKeywords = [];
+
+  for (const kw of NUTRITION_KEYWORDS) {
+    if (lower.includes(kw)) {
+      // Multi-word keywords score higher
+      const weight = kw.split(' ').length > 1 ? 25 : 10;
+      score += weight;
+      matchedKeywords.push(kw);
+      if (score >= 100) break; // cap at 100
+    }
+  }
+
+  // Bonus: short queries with food-adjacent intent words
+  const intentWords = ['how', 'what', 'suggest', 'recommend', 'tell me', 'can i', 'should i', 'help', 'analyze', 'plan', 'calculate', 'best', 'good', 'bad', 'much', 'many'];
+  const hasIntentWord = intentWords.some(w => lower.includes(w));
+  if (hasIntentWord && score > 0) score = Math.min(score + 10, 100);
+
+  const confidence = Math.min(score, 100);
+  const isNutrition = confidence >= 15; // minimum threshold
+
+  return {
+    isNutrition,
+    confidence,
+    reason: matchedKeywords.length > 0 ? `matched: ${matchedKeywords.slice(0, 3).join(', ')}` : 'no nutrition keywords found',
+  };
+}
+
 // ── AI CHAT ASSISTANT ─────────────────────────────────────────
 
 app.post('/api/ai-chat', async (req, res) => {
   const { message, profile, history = [] } = req.body;
 
-  const fallbackReply = `That's a great nutrition question! Based on your ${profile?.goal_type || 'fitness'} goal, I'd suggest focusing on whole foods and staying within your ${profile?.calorie_target || 2000} kcal daily target. Since my AI connection is temporarily limited, please try again in a moment for a detailed response.`;
-
-  if (!genAI) {
-    return res.json({ success: true, reply: fallbackReply });
+  if (!message || !message.trim()) {
+    return res.status(400).json({ success: false, error: 'Message is required' });
   }
 
+  // ── Step 1: Intent Classification ──────────────────────────
+  const intent = classifyIntent(message.trim());
+  console.log(`[Intent] "${message.slice(0, 60)}" → nutrition=${intent.isNutrition}, confidence=${intent.confidence}%, reason=${intent.reason}`);
+
+  // ── Step 2: Reject off-topic queries ───────────────────────
+  if (!intent.isNutrition) {
+    const rejectionMessage = intent.confidence <= 5
+      ? `That's outside my area of expertise. I'm **Calorix AI**, your personal nutrition and fitness assistant. I can help you with:\n- 🥗 Meal planning & Indian food suggestions\n- 💪 Protein, calorie & macro tracking\n- 🏋️ Gym diet & workout nutrition\n- 💧 Hydration & healthy habits\n- 🎯 Weight loss or muscle gain plans\n\nTry asking: *"Suggest a high protein Indian breakfast"*`
+      : `I specialize only in **nutrition, fitness, and health**. I'm not able to help with that topic.\n\nHere's what I *can* help you with:\n- Calorie breakdown for Indian foods\n- Personalized meal plans\n- Pre/post workout nutrition\n- Hydration and healthy habits\n\nTry: *"How many calories are in dosa?"*`;
+
+    return res.json({
+      success: true,
+      reply: rejectionMessage,
+      rejected: true,
+      confidence: intent.confidence,
+    });
+  }
+
+  // ── Step 3: Low confidence — soft warning but still answer ─
+  const lowConfidencePrefix = intent.confidence < 30
+    ? `I'll do my best to answer from a nutrition perspective!\n\n`
+    : '';
+
+  // ── Step 4: Standard fallback (no Gemini key) ──────────────
+  const fallbackReply = `${lowConfidencePrefix}Based on your **${profile?.goal_type || 'fitness'}** goal, focus on whole foods and aim to stay within your **${profile?.calorie_target || 2000} kcal** daily target. My AI connection is temporarily limited — please try again shortly for a detailed response.`;
+
+  if (!genAI) {
+    return res.json({ success: true, reply: fallbackReply, rejected: false });
+  }
+
+  // ── Step 5: Gemini AI Response ─────────────────────────────
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const systemContext = `You are Calorix AI, a friendly and expert Indian nutrition coach. Your personality is warm, practical, and encouraging.
+    const systemContext = `You are Calorix AI, a friendly and expert Indian nutrition and fitness coach. Your ONLY domain is nutrition, food, fitness, health, and wellness.
+
+STRICT RULES:
+- NEVER answer questions unrelated to nutrition, food, fitness, health, or wellness
+- If somehow an off-topic question reaches you, respond: "I only answer nutrition and fitness questions."
+- Keep responses concise (2-4 sentences usually)
+- Focus on Indian foods and cuisine when relevant
+- Be specific with food names, quantities, and calorie estimates
+- Use light markdown (bold for food names, bullets for lists)
+- Be encouraging and motivational
 
 User Profile:
-- Name: ${profile?.name || 'User'}
 - Goal: ${profile?.goal_type || 'Maintain Weight'}
 - Dietary Preference: ${profile?.diet_preference || 'Vegetarian'}
 - Daily Calorie Target: ${profile?.calorie_target || 2000} kcal
 - Protein Target: ${profile?.protein_target || 120}g
 - Activity Level: ${profile?.activity_level || 'Moderately Active'}
-- Age: ${profile?.age}, Weight: ${profile?.weight}kg, Height: ${profile?.height}cm
+- Age: ${profile?.age || '—'}, Weight: ${profile?.weight || '—'}kg, Height: ${profile?.height || '—'}cm`;
 
-Guidelines:
-- Keep responses concise (2-4 sentences usually)
-- Focus on Indian foods and cuisine when relevant
-- Always be specific with food names, quantities, and calorie estimates
-- Use light markdown (bold for food names, bullets for lists)
-- Be encouraging and motivational
-- If asked about specific Indian foods, provide accurate nutritional info`;
-
-    // Build conversation for Gemini
     const conversationHistory = history
-      .filter(m => m.content)
+      .filter(m => m.content && !m.rejected)
       .map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }],
       }));
 
-    // Start chat with system context prepended to first message
     const chat = model.startChat({
       history: conversationHistory.length > 0 ? conversationHistory : undefined,
     });
 
     const fullMessage = conversationHistory.length === 0
-      ? `${systemContext}\n\nUser: ${message}`
+      ? `${systemContext}\n\nUser question: ${message}`
       : message;
 
     const result = await chat.sendMessage(fullMessage);
-    const reply = result.response.text().trim();
+    const reply = `${lowConfidencePrefix}${result.response.text().trim()}`;
 
-    res.json({ success: true, reply });
+    res.json({ success: true, reply, rejected: false, confidence: intent.confidence });
   } catch (error) {
     console.error('Gemini Chat Error:', error.message);
-    res.json({ success: true, reply: fallbackReply });
+    res.json({ success: true, reply: fallbackReply, rejected: false });
   }
 });
 

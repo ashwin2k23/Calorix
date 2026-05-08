@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Send, Loader2, RefreshCw, MessageSquare, User } from 'lucide-react';
+import { Sparkles, Send, Loader2, RefreshCw, MessageSquare, User, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -10,10 +10,18 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const SUGGESTED_PROMPTS = [
   { icon: '🥘', text: 'Can I eat dosa during weight loss?' },
   { icon: '💪', text: 'Suggest a high protein Indian breakfast' },
-  { icon: '📊', text: "Analyze today's nutrition balance" },
+  { icon: '📊', text: "How many calories in chicken biryani?" },
   { icon: '🏋️', text: 'What should I eat after gym?' },
   { icon: '🫀', text: 'What Indian foods are heart-healthy?' },
   { icon: '🌙', text: 'Best light dinner for weight loss?' },
+];
+
+// Prompts shown inside a rejection bubble
+const RECOVERY_PROMPTS = [
+  'Analyze my meals',
+  'Suggest a high protein breakfast',
+  'How many calories in dosa?',
+  'Create a fat loss meal plan',
 ];
 
 // Simple markdown renderer (bold, italic, bullets)
@@ -42,8 +50,27 @@ function TypingDots() {
   );
 }
 
-function Message({ msg }) {
+function Message({ msg, onSuggestedPrompt }) {
   const isUser = msg.role === 'user';
+  const isRejected = msg.rejected === true;
+
+  if (msg.typing) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex gap-3"
+      >
+        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-[#00c2ff]/20 border border-white/10">
+          <Sparkles className="w-4 h-4 text-primary" />
+        </div>
+        <div className="max-w-[75%] rounded-2xl rounded-tl-sm px-4 py-3 bg-card/60 border border-white/10 backdrop-blur-sm">
+          <TypingDots />
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -52,30 +79,63 @@ function Message({ msg }) {
       className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
     >
       {/* Avatar */}
-      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm
+      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm flex-shrink-0
         ${isUser
           ? 'bg-primary/20 border border-primary/30 text-primary'
-          : 'bg-gradient-to-br from-primary/20 to-[#00c2ff]/20 border border-white/10'
+          : isRejected
+            ? 'bg-amber-500/20 border border-amber-500/30'
+            : 'bg-gradient-to-br from-primary/20 to-[#00c2ff]/20 border border-white/10'
         }`}>
-        {isUser ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4 text-primary" />}
+        {isUser
+          ? <User className="w-4 h-4" />
+          : isRejected
+            ? <AlertCircle className="w-4 h-4 text-amber-400" />
+            : <Sparkles className="w-4 h-4 text-primary" />
+        }
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+      <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed
         ${isUser
           ? 'bg-primary/15 border border-primary/20 text-foreground rounded-tr-sm'
-          : 'bg-card/60 border border-white/10 text-foreground/90 rounded-tl-sm backdrop-blur-sm'
+          : isRejected
+            ? 'bg-amber-500/8 border border-amber-500/25 text-foreground/90 rounded-tl-sm'
+            : 'bg-card/60 border border-white/10 text-foreground/90 rounded-tl-sm backdrop-blur-sm'
         }`}>
-        {msg.typing ? (
-          <TypingDots />
-        ) : (
-          <div
-            className="prose-sm"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-          />
+
+        {/* Rejected label */}
+        {isRejected && (
+          <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+            <AlertCircle className="w-3 h-3" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Out of scope</span>
+          </div>
         )}
+
+        <div
+          className="prose-sm"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+        />
+
+        {/* Recovery prompts shown below rejection */}
+        {isRejected && (
+          <div className="mt-3 pt-3 border-t border-amber-500/15">
+            <p className="text-[10px] text-amber-400/70 font-medium mb-2 uppercase tracking-wide">Try one of these:</p>
+            <div className="flex flex-col gap-1.5">
+              {RECOVERY_PROMPTS.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSuggestedPrompt(p)}
+                  className="text-left text-xs px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40 text-foreground/80 hover:text-foreground transition-all"
+                >
+                  → {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {msg.timestamp && (
-          <p className="text-[10px] text-muted-foreground mt-1.5 text-right">
+          <p className="text-[10px] text-muted-foreground mt-2 text-right">
             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
@@ -91,6 +151,7 @@ export default function Assistant({ profile }) {
       role: 'assistant',
       content: `Namaste! 🙏 I'm your personal AI nutrition coach, powered by Gemini AI.\n\nI can help you with:\n- **Meal suggestions** tailored to Indian cuisine\n- **Calorie & macro** breakdown for any food\n- **Diet advice** based on your ${profile?.goal_type || 'fitness'} goal\n- **Pre/post workout** nutrition tips\n\nWhat would you like to know today?`,
       timestamp: Date.now(),
+      rejected: false,
     }
   ]);
   const [input, setInput] = useState('');
@@ -112,6 +173,7 @@ export default function Assistant({ profile }) {
       role: 'user',
       content: userText,
       timestamp: Date.now(),
+      rejected: false,
     };
     const typingMsg = { id: 'typing', role: 'assistant', typing: true };
     setMessages(prev => [...prev, userMsg, typingMsg]);
@@ -125,16 +187,23 @@ export default function Assistant({ profile }) {
           message: userText,
           profile,
           history: messages
-            .filter(m => !m.typing && m.id !== 'welcome')
+            .filter(m => !m.typing && m.id !== 'welcome' && !m.rejected)
             .slice(-6)
             .map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'AI failed');
+
       setMessages(prev => [
         ...prev.filter(m => m.id !== 'typing'),
-        { id: Date.now(), role: 'assistant', content: data.reply, timestamp: Date.now() },
+        {
+          id: Date.now(),
+          role: 'assistant',
+          content: data.reply,
+          timestamp: Date.now(),
+          rejected: data.rejected === true,
+        },
       ]);
     } catch (err) {
       setMessages(prev => [
@@ -144,6 +213,7 @@ export default function Assistant({ profile }) {
           role: 'assistant',
           content: "I'm having trouble connecting right now. Please check that the backend is running and try again.",
           timestamp: Date.now(),
+          rejected: false,
         },
       ]);
       toast.error('AI assistant unavailable');
@@ -164,8 +234,9 @@ export default function Assistant({ profile }) {
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: `Chat cleared! I'm still here to help with your nutrition questions. What's on your mind?`,
+      content: `Chat cleared! Ask me anything about nutrition, Indian foods, or your fitness goal. 🥗`,
       timestamp: Date.now(),
+      rejected: false,
     }]);
   };
 
@@ -183,7 +254,7 @@ export default function Assistant({ profile }) {
             <Sparkles className="w-6 h-6 text-[#00c2ff]" />
           </h1>
           <p className="text-sm text-muted-foreground">
-            Powered by Gemini AI · Specialized in Indian nutrition
+            Powered by Gemini AI · Nutrition & fitness only
             {profile?.goal_type && (
               <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
                 🎯 {profile.goal_type}
@@ -206,7 +277,7 @@ export default function Assistant({ profile }) {
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: '100%' }}>
           <AnimatePresence>
             {messages.map(msg => (
-              <Message key={msg.id} msg={msg} />
+              <Message key={msg.id} msg={msg} onSuggestedPrompt={sendMessage} />
             ))}
           </AnimatePresence>
           <div ref={bottomRef} />
@@ -220,7 +291,7 @@ export default function Assistant({ profile }) {
                 key={i}
                 onClick={() => sendMessage(p.text)}
                 disabled={loading}
-                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full bg-black/30 border border-white/10 hover:border-primary/30 hover:bg-primary/5 hover:text-primary text-muted-foreground transition-all"
+                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full bg-black/30 border border-white/10 hover:border-primary/30 hover:bg-primary/5 hover:text-primary text-muted-foreground transition-all disabled:opacity-40"
               >
                 {p.icon} {p.text}
               </button>
@@ -231,7 +302,7 @@ export default function Assistant({ profile }) {
         {/* Input */}
         <div className="border-t border-white/5 p-4 flex gap-3">
           <div className="flex-1 relative">
-            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <MessageSquare className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
             <textarea
               ref={inputRef}
               value={input}
