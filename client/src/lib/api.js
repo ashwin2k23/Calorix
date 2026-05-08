@@ -26,6 +26,8 @@ const api = {
   getWater: (userId, date) => request(`/api/water/${userId}?date=${date}`),
   upsertWater: (userId, date, amount_ml) =>
     request('/api/water', { method: 'PUT', body: JSON.stringify({ user_id: userId, date, amount_ml }) }),
+  aiChat: (message, profile, history) =>
+    request('/api/ai-chat', { method: 'POST', body: JSON.stringify({ message, profile, history }) }),
 };
 
 export default api;

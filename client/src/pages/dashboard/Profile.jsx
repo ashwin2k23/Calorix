@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useClerk } from '@clerk/clerk-react';
 import { toast } from 'sonner';
-import { User, Target, Activity, Droplets, Edit3, Save, X, LogOut, RotateCcw, Zap, Flame } from 'lucide-react';
+import { User, Target, Activity, Droplets, Edit3, Save, X, LogOut, RotateCcw, Zap, Flame, Award, Star } from 'lucide-react';
 import api from '@/lib/api';
+import { useGamification } from '@/hooks/useGamification';
 
 const ACTIVITY_OPTS  = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active'];
 const GOAL_OPTS      = ['Lose Weight', 'Maintain Weight', 'Gain Muscle'];
@@ -40,6 +41,9 @@ export default function Profile({ profile, user, onProfileUpdate }) {
     goal_type:      profile?.goal_type      || 'Maintain Weight',
     diet_preference:profile?.diet_preference|| 'Vegetarian',
   });
+
+  // Gamification — uses empty meals for profile page (no full fetch here)
+  const { badges, levelInfo, streakData } = useGamification({ meals: [], waterToday: 0, profile });
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -265,6 +269,57 @@ export default function Profile({ profile, user, onProfileUpdate }) {
             <StatBox label="Protein"   value={`${profile?.protein_target}g`}                color="text-[#9b6dff]"   icon={<Zap      className="w-4 h-4 text-[#9b6dff]"   />} />
             <StatBox label="Carbs"     value={`${profile?.carbs_target}g`}                  color="text-orange-400"  icon={<Target   className="w-4 h-4 text-orange-400"  />} />
             <StatBox label="Hydration" value={`${((profile?.hydration_target || 3000) / 1000).toFixed(1)}L`} color="text-blue-400" icon={<Droplets className="w-4 h-4 text-blue-400"  />} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gamification Summary */}
+      <Card className="border-white/5 bg-card/40 backdrop-blur-md">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Award className="w-4 h-4 text-yellow-400" /> Level & Achievements
+            <span className="ml-auto text-xs text-muted-foreground">
+              {badges.filter(b => b.earned).length}/{badges.length} badges
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Level Progress */}
+          <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-yellow-400/5 border border-yellow-400/15">
+            <div className="w-10 h-10 rounded-xl bg-yellow-400/15 flex items-center justify-center flex-shrink-0">
+              <Star className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between mb-1">
+                <p className="text-sm font-bold">Level {levelInfo.level} · {levelInfo.title}</p>
+                <p className="text-xs text-muted-foreground">{levelInfo.xp} XP</p>
+              </div>
+              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${levelInfo.progress}%` }}
+                  transition={{ duration: 1.2 }}
+                  className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-orange-400"
+                />
+              </div>
+            </div>
+          </div>
+          {/* Badge Grid */}
+          <div className="grid grid-cols-4 gap-2">
+            {badges.slice(0, 8).map(badge => (
+              <div
+                key={badge.id}
+                title={badge.desc}
+                className={`p-2 rounded-xl border text-center transition-all ${
+                  badge.earned
+                    ? 'bg-yellow-400/10 border-yellow-400/25'
+                    : 'bg-white/3 border-white/5 opacity-35'
+                }`}
+              >
+                <div className="text-xl mb-0.5">{badge.icon}</div>
+                <p className="text-[9px] text-muted-foreground leading-tight">{badge.name}</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

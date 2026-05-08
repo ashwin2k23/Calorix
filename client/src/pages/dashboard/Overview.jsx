@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Lightbulb, Flame, Droplets, Target, TrendingUp, Zap, RefreshCw, Plus, Minus } from 'lucide-react';
+import { Lightbulb, Flame, Droplets, Target, TrendingUp, Zap, RefreshCw, Plus, Minus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import GamificationBanner from '@/components/GamificationBanner';
+import { useGamification } from '@/hooks/useGamification';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -181,6 +183,14 @@ export default function Overview({ profile, user }) {
   const weeklyData     = useMemo(() => buildWeeklyData(meals), [meals]);
   const hasLoggedMeals = meals.length > 0;
 
+  // Water for gamification (from localStorage)
+  const waterToday = useMemo(() => {
+    const key = `calorix_water_${user?.id}_${TODAY}`;
+    return parseInt(localStorage.getItem(key) || '0');
+  }, [user]);
+
+  const { levelInfo, streakData, badges } = useGamification({ meals, waterToday, profile });
+
   const macroData = [
     { name: 'Carbs',   consumed: carbsConsumed,   goal: carbsGoal,   color: '#f97316' },
     { name: 'Protein', consumed: proteinConsumed,  goal: proteinGoal, color: '#9b6dff' },
@@ -205,25 +215,25 @@ export default function Overview({ profile, user }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">
-            {getGreeting()}, {user?.firstName || 'User'} 👋
-          </h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-muted-foreground text-sm">Here's your nutrition progress today.</span>
-            {profile?.goal_type && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium">
-                🎯 {profile.goal_type}
-              </span>
-            )}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">
+              {getGreeting()}, {user?.firstName || 'User'} 👋
+            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-muted-foreground text-sm">Here's your nutrition progress today.</span>
+              {profile?.goal_type && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium">
+                  🎯 {profile.goal_type}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        {streak > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 self-start sm:self-auto">
-            <Flame className="w-4 h-4" />
-            <span className="text-sm font-bold">{streak} day streak</span>
-          </div>
+        {/* Gamification Banner */}
+        {!loading && (
+          <GamificationBanner levelInfo={levelInfo} streakData={streakData} badges={badges} />
         )}
       </div>
 
@@ -327,18 +337,31 @@ export default function Overview({ profile, user }) {
       {/* Charts or Empty State */}
       {!hasLoggedMeals && !loading ? (
         <Card className="border-dashed border-white/10 bg-black/20">
-          <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-            <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 3 }}
-              className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 shadow-xl shadow-primary/10">
-              <TrendingUp className="w-8 h-8 text-primary" />
+          <CardContent className="flex flex-col items-center justify-center p-10 text-center">
+            <motion.div
+              animate={{ y: [0, -10, 0], rotate: [0, 5, -5, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="text-6xl mb-5"
+            >
+              🍎
             </motion.div>
-            <h3 className="text-xl font-bold mb-2">No meals tracked yet</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mb-5">Start your nutrition journey. Add your first meal to unlock analytics and AI insights.</p>
-            <Link to="/dashboard/meals">
-              <Button className="rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90">
-                Log Your First Meal
-              </Button>
-            </Link>
+            <h3 className="text-xl font-bold mb-2">Start your nutrition journey!</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mb-2">
+              Log your first meal to unlock <strong className="text-foreground">analytics</strong>, <strong className="text-foreground">AI insights</strong>, and <strong className="text-foreground">streak rewards</strong>.
+            </p>
+            <p className="text-xs text-muted-foreground mb-6">Track consistently to earn badges and level up! 🏆</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link to="/dashboard/meals">
+                <Button className="rounded-full px-8 bg-gradient-to-r from-primary to-[#00c2ff] hover:opacity-90">
+                  🍽️ Log First Meal
+                </Button>
+              </Link>
+              <Link to="/dashboard/assistant">
+                <Button variant="outline" className="rounded-full px-6 border-white/10 hover:border-primary/30 gap-2">
+                  <MessageSquare className="w-4 h-4" /> Ask AI Coach
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       ) : hasLoggedMeals && (

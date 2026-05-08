@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Flame, Brain, Activity, Utensils, ArrowRight } from 'lucide-react';
+import { Flame, Brain, Activity, Utensils, ArrowRight, MessageSquare, BarChart2, Award } from 'lucide-react';
 import { SignedIn, SignedOut, UserButton, useClerk } from '@clerk/clerk-react';
 
 export default function Landing() {
@@ -10,23 +10,33 @@ export default function Landing() {
     {
       icon: <Activity className="w-6 h-6 text-primary" />,
       title: "Calorie Tracking",
-      desc: "Easily log your Indian meals with our extensive food database."
+      desc: "Easily log your Indian meals with our 20+ food database including dosa, idli, biryani, roti and more."
     },
     {
       icon: <Brain className="w-6 h-6 text-primary" />,
       title: "AI Diet Planner",
-      desc: "Get personalized diet plans tailored to your goals by our AI."
+      desc: "Get personalized full-day Indian meal plans tailored to your goals by Gemini AI."
+    },
+    {
+      icon: <MessageSquare className="w-6 h-6 text-primary" />,
+      title: "AI Nutrition Chat",
+      desc: "Ask our Gemini-powered coach anything — from 'Can I eat biryani?' to post-workout meal advice."
+    },
+    {
+      icon: <BarChart2 className="w-6 h-6 text-primary" />,
+      title: "Advanced Analytics",
+      desc: "Weekly calorie trends, macro charts, meal breakdowns, and AI-powered health insights."
+    },
+    {
+      icon: <Award className="w-6 h-6 text-primary" />,
+      title: "Gamification & Streaks",
+      desc: "Earn XP, unlock badges, maintain streaks, and level up your nutrition game."
     },
     {
       icon: <Utensils className="w-6 h-6 text-primary" />,
       title: "Indian Food DB",
-      desc: "From Roti to Paneer, we've got all your favorite Indian dishes covered."
+      desc: "From Roti to Paneer Tikka, we've got all your favorite Indian dishes with accurate macros."
     },
-    {
-      icon: <Flame className="w-6 h-6 text-primary" />,
-      title: "Progress Analytics",
-      desc: "Track your macros and weight changes with intuitive charts."
-    }
   ];
 
   return (
@@ -109,7 +119,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-32 text-left"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-32 text-left"
           >
             {features.map((feature, idx) => (
               <div key={idx} className="group p-6 rounded-3xl bg-card/40 border border-white/5 backdrop-blur-md hover:bg-card/60 hover:border-primary/30 transition-all hover:shadow-[0_8px_30px_rgba(0,194,255,0.1)]">
@@ -165,7 +175,7 @@ export default function Landing() {
               </p>
               <div className="text-xs text-muted-foreground">
                 <p className="font-semibold text-foreground mb-2">Tech Stack</p>
-                <p>React, Vite, TailwindCSS, Supabase, Clerk Auth, OpenAI API</p>
+                <p>React + Vite, TailwindCSS, Clerk Auth, Gemini AI, PostgreSQL</p>
               </div>
             </div>
             <div>
@@ -173,7 +183,9 @@ export default function Landing() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link to="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link></li>
                 <li><Link to="/dashboard/planner" className="hover:text-primary transition-colors">AI Planner</Link></li>
+                <li><Link to="/dashboard/assistant" className="hover:text-primary transition-colors">AI Chat</Link></li>
                 <li><Link to="/dashboard/meals" className="hover:text-primary transition-colors">Meal Tracker</Link></li>
+                <li><Link to="/dashboard/analytics" className="hover:text-primary transition-colors">Analytics</Link></li>
               </ul>
             </div>
             <div>

@@ -289,6 +289,66 @@ Be direct, practical, and mention a specific Indian food. Return only plain text
   }
 });
 
+// ── AI CHAT ASSISTANT ─────────────────────────────────────────
+
+app.post('/api/ai-chat', async (req, res) => {
+  const { message, profile, history = [] } = req.body;
+
+  const fallbackReply = `That's a great nutrition question! Based on your ${profile?.goal_type || 'fitness'} goal, I'd suggest focusing on whole foods and staying within your ${profile?.calorie_target || 2000} kcal daily target. Since my AI connection is temporarily limited, please try again in a moment for a detailed response.`;
+
+  if (!genAI) {
+    return res.json({ success: true, reply: fallbackReply });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const systemContext = `You are Calorix AI, a friendly and expert Indian nutrition coach. Your personality is warm, practical, and encouraging.
+
+User Profile:
+- Name: ${profile?.name || 'User'}
+- Goal: ${profile?.goal_type || 'Maintain Weight'}
+- Dietary Preference: ${profile?.diet_preference || 'Vegetarian'}
+- Daily Calorie Target: ${profile?.calorie_target || 2000} kcal
+- Protein Target: ${profile?.protein_target || 120}g
+- Activity Level: ${profile?.activity_level || 'Moderately Active'}
+- Age: ${profile?.age}, Weight: ${profile?.weight}kg, Height: ${profile?.height}cm
+
+Guidelines:
+- Keep responses concise (2-4 sentences usually)
+- Focus on Indian foods and cuisine when relevant
+- Always be specific with food names, quantities, and calorie estimates
+- Use light markdown (bold for food names, bullets for lists)
+- Be encouraging and motivational
+- If asked about specific Indian foods, provide accurate nutritional info`;
+
+    // Build conversation for Gemini
+    const conversationHistory = history
+      .filter(m => m.content)
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+    // Start chat with system context prepended to first message
+    const chat = model.startChat({
+      history: conversationHistory.length > 0 ? conversationHistory : undefined,
+    });
+
+    const fullMessage = conversationHistory.length === 0
+      ? `${systemContext}\n\nUser: ${message}`
+      : message;
+
+    const result = await chat.sendMessage(fullMessage);
+    const reply = result.response.text().trim();
+
+    res.json({ success: true, reply });
+  } catch (error) {
+    console.error('Gemini Chat Error:', error.message);
+    res.json({ success: true, reply: fallbackReply });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Calorix Backend running on port ${PORT} with Gemini AI`);

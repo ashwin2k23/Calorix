@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Utensils, Target, Sparkles, UserCircle, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Utensils, Target, Sparkles, UserCircle, Menu, X, BarChart2, MessageSquare } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,14 +10,27 @@ import Meals from './dashboard/Meals';
 import Goals from './dashboard/Goals';
 import AIPlanner from './dashboard/AIPlanner';
 import Profile from './dashboard/Profile';
+import Assistant from './dashboard/Assistant';
+import Analytics from './dashboard/Analytics';
 import api from '@/lib/api';
 
 const NAV_ITEMS = [
-  { path: '',        label: 'Overview',    icon: <LayoutDashboard size={18} /> },
-  { path: 'meals',   label: 'Meals',       icon: <Utensils size={18} />        },
-  { path: 'goals',   label: 'Goals',       icon: <Target size={18} />          },
-  { path: 'planner', label: 'AI Planner',  icon: <Sparkles size={18} />        },
-  { path: 'profile', label: 'Profile',     icon: <UserCircle size={18} />      },
+  { path: '',          label: 'Overview',   icon: <LayoutDashboard size={18} /> },
+  { path: 'meals',     label: 'Meals',      icon: <Utensils size={18} />        },
+  { path: 'goals',     label: 'Goals',      icon: <Target size={18} />          },
+  { path: 'planner',   label: 'AI Planner', icon: <Sparkles size={18} />        },
+  { path: 'assistant', label: 'AI Chat',    icon: <MessageSquare size={18} />   },
+  { path: 'analytics', label: 'Analytics',  icon: <BarChart2 size={18} />       },
+  { path: 'profile',   label: 'Profile',    icon: <UserCircle size={18} />      },
+];
+
+// Bottom nav shows only the 5 most important items on mobile
+const BOTTOM_NAV = [
+  { path: '',          label: 'Home',      icon: <LayoutDashboard size={20} /> },
+  { path: 'meals',     label: 'Meals',     icon: <Utensils size={20} />        },
+  { path: 'assistant', label: 'AI Chat',   icon: <MessageSquare size={20} />   },
+  { path: 'analytics', label: 'Stats',     icon: <BarChart2 size={20} />       },
+  { path: 'profile',   label: 'Profile',   icon: <UserCircle size={20} />      },
 ];
 
 export default function Dashboard() {
@@ -62,7 +75,7 @@ export default function Dashboard() {
         <aside className="w-64 border-r border-white/10 bg-card/30 p-6 hidden md:flex flex-col">
           <Skeleton className="h-8 w-32 mb-10" />
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+            {[...Array(7)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
           </div>
         </aside>
         <main className="flex-1 p-6 md:p-10">
@@ -87,7 +100,7 @@ export default function Dashboard() {
         </span>
       </div>
 
-      <nav className="flex-1 space-y-1.5">
+      <nav className="flex-1 space-y-1">
         {NAV_ITEMS.map((item) => {
           const href = `/dashboard${item.path ? `/${item.path}` : ''}`;
           const isActive = location.pathname === href;
@@ -100,6 +113,9 @@ export default function Dashboard() {
               }`}>
               {item.icon}
               <span className="font-medium">{item.label}</span>
+              {item.path === 'assistant' && (
+                <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-[#00c2ff]/15 border border-[#00c2ff]/30 text-[#00c2ff] font-semibold">NEW</span>
+              )}
             </Link>
           );
         })}
@@ -160,17 +176,51 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-y-auto min-h-0">
+      <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-y-auto min-h-0 pb-24 md:pb-10">
         <ErrorBoundary>
           <Routes>
-            <Route path=""        element={<Overview  profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
-            <Route path="meals"   element={<Meals     profile={profile} user={user} />} />
-            <Route path="goals"   element={<Goals     profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
-            <Route path="planner" element={<AIPlanner profile={profile} />} />
-            <Route path="profile" element={<Profile   profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
+            <Route path=""          element={<Overview   profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
+            <Route path="meals"     element={<Meals      profile={profile} user={user} />} />
+            <Route path="goals"     element={<Goals      profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
+            <Route path="planner"   element={<AIPlanner  profile={profile} />} />
+            <Route path="assistant" element={<Assistant  profile={profile} />} />
+            <Route path="analytics" element={<Analytics  profile={profile} user={user} />} />
+            <Route path="profile"   element={<Profile    profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
           </Routes>
         </ErrorBoundary>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur-lg border-t border-white/10 px-2 py-2 pb-safe">
+        <div className="flex items-center justify-around">
+          {BOTTOM_NAV.map((item) => {
+            const href = `/dashboard${item.path ? `/${item.path}` : ''}`;
+            const isActive = location.pathname === href;
+            return (
+              <Link
+                key={item.path}
+                to={href}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-0 flex-1 ${
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <div className={`transition-all ${isActive ? 'scale-110' : ''}`}>
+                  {item.icon}
+                </div>
+                <span className={`text-[10px] font-medium truncate ${isActive ? 'text-primary' : ''}`}>
+                  {item.label}
+                </span>
+                {isActive && (
+                  <motion.div
+                    layoutId="bottomNavIndicator"
+                    className="absolute bottom-1 w-1 h-1 rounded-full bg-primary"
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
