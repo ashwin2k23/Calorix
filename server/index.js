@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import pkg from 'pg';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
@@ -18,47 +21,136 @@ app.use((req, res, next) => {
   next();
 });
 
-// PostgreSQL connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+let dbMode = 'sqlite';
+let sqliteDb;
+let pool;
 
-// Auto-create tables on startup
+// Hybrid database wrapper
+const db = {
+  query: async (text, params = []) => {
+    const safeParams = params.map(p => p === undefined ? null : p);
+    if (dbMode === 'postgres') {
+      return await pool.query(text, safeParams);
+    } else {
+      let sqliteText = text;
+      // Convert Postgres-style $1, $2, $3 to SQLite-style ?
+      sqliteText = sqliteText.replace(/\$\d+/g, '?');
+
+      const isSelect = sqliteText.trim().toUpperCase().startsWith('SELECT');
+
+      if (isSelect) {
+        const rows = await sqliteDb.all(sqliteText, safeParams);
+        return { rows };
+      } else {
+        const result = await sqliteDb.run(sqliteText, safeParams);
+        let rows = [];
+        if (sqliteText.toUpperCase().includes('RETURNING')) {
+          rows = [{ id: result.lastID }];
+        }
+        return { rows, lastID: result.lastID, changes: result.changes };
+      }
+    }
+  }
+};
+
+// Database Initialization
 (async () => {
+  if (process.env.DATABASE_URL) {
+    try {
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      });
+      // Test connection
+      await pool.query('SELECT NOW()');
+      dbMode = 'postgres';
+      console.log('✅ Connected to PostgreSQL database!');
+    } catch (err) {
+      console.log('⚠️ PostgreSQL connection failed, falling back to SQLite:', err.message);
+    }
+  } else {
+    console.log('ℹ️ No DATABASE_URL found. Initializing SQLite...');
+  }
+
+  if (dbMode === 'sqlite') {
+    try {
+      sqliteDb = await open({
+        filename: path.join(process.cwd(), 'calorix.db'),
+        driver: sqlite3.Database
+      });
+      console.log('✅ Connected to SQLite database: calorix.db');
+    } catch (err) {
+      console.error('❌ Failed to open SQLite database:', err.message);
+    }
+  }
+
+  // Initialize schemas
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        clerk_user_id TEXT PRIMARY KEY,
-        name TEXT, email TEXT, age INTEGER, gender TEXT,
-        height REAL, weight REAL, activity_level TEXT, goal_type TEXT,
-        diet_preference TEXT, calorie_target INTEGER, protein_target INTEGER,
-        carbs_target INTEGER, fats_target INTEGER, hydration_target INTEGER,
-        onboarding_completed BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS meals (
-        id SERIAL PRIMARY KEY, user_id TEXT,
-        food_name TEXT, calories INTEGER, protein REAL,
-        carbs REAL, fats REAL, meal_type TEXT,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        FOREIGN KEY(user_id) REFERENCES users(clerk_user_id) ON DELETE CASCADE
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS water_logs (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT REFERENCES users(clerk_user_id) ON DELETE CASCADE,
-        date DATE NOT NULL DEFAULT CURRENT_DATE,
-        amount_ml INTEGER DEFAULT 0,
-        UNIQUE(user_id, date)
-      )
-    `);
-    console.log('✅ PostgreSQL Database Initialized!');
+    if (dbMode === 'postgres') {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          clerk_user_id TEXT PRIMARY KEY,
+          name TEXT, email TEXT, age INTEGER, gender TEXT,
+          height REAL, weight REAL, activity_level TEXT, goal_type TEXT,
+          diet_preference TEXT, calorie_target INTEGER, protein_target INTEGER,
+          carbs_target INTEGER, fats_target INTEGER, hydration_target INTEGER,
+          onboarding_completed BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS meals (
+          id SERIAL PRIMARY KEY, user_id TEXT,
+          food_name TEXT, calories INTEGER, protein REAL,
+          carbs REAL, fats REAL, meal_type TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          FOREIGN KEY(user_id) REFERENCES users(clerk_user_id) ON DELETE CASCADE
+        )
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS water_logs (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT REFERENCES users(clerk_user_id) ON DELETE CASCADE,
+          date DATE NOT NULL DEFAULT CURRENT_DATE,
+          amount_ml INTEGER DEFAULT 0,
+          UNIQUE(user_id, date)
+        )
+      `);
+      console.log('✅ PostgreSQL schemas verified.');
+    } else if (sqliteDb) {
+      await sqliteDb.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          clerk_user_id TEXT PRIMARY KEY,
+          name TEXT, email TEXT, age INTEGER, gender TEXT,
+          height REAL, weight REAL, activity_level TEXT, goal_type TEXT,
+          diet_preference TEXT, calorie_target INTEGER, protein_target INTEGER,
+          carbs_target INTEGER, fats_target INTEGER, hydration_target INTEGER,
+          onboarding_completed BOOLEAN DEFAULT FALSE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await sqliteDb.exec(`
+        CREATE TABLE IF NOT EXISTS meals (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT,
+          food_name TEXT, calories INTEGER, protein REAL,
+          carbs REAL, fats REAL, meal_type TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(user_id) REFERENCES users(clerk_user_id) ON DELETE CASCADE
+        )
+      `);
+      await sqliteDb.exec(`
+        CREATE TABLE IF NOT EXISTS water_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT REFERENCES users(clerk_user_id) ON DELETE CASCADE,
+          date DATE NOT NULL DEFAULT CURRENT_DATE,
+          amount_ml INTEGER DEFAULT 0,
+          UNIQUE(user_id, date)
+        )
+      `);
+      console.log('✅ SQLite schemas verified.');
+    }
   } catch (err) {
-    console.error('❌ Database initialization error:', err.message);
+    console.error('❌ Database schema initialization error:', err.message);
   }
 })();
 
@@ -70,7 +162,11 @@ if (process.env.GEMINI_API_KEY) {
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Calorix Backend running with PostgreSQL + Gemini AI' });
+  res.json({ 
+    status: 'ok', 
+    database: dbMode,
+    message: `Calorix Backend running with ${dbMode} + Gemini AI` 
+  });
 });
 
 // ── USERS ─────────────────────────────────────────────────────
@@ -85,25 +181,33 @@ app.post('/api/users', async (req, res) => {
   } = req.body;
 
   try {
-    await pool.query(`
-      INSERT INTO users (
-        clerk_user_id, name, email, age, gender, height, weight,
-        activity_level, goal_type, diet_preference, calorie_target,
-        protein_target, carbs_target, fats_target, hydration_target,
-        onboarding_completed
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-      ON CONFLICT (clerk_user_id) DO UPDATE SET
-        name = EXCLUDED.name, email = EXCLUDED.email, age = EXCLUDED.age,
-        gender = EXCLUDED.gender, height = EXCLUDED.height, weight = EXCLUDED.weight,
-        activity_level = EXCLUDED.activity_level, goal_type = EXCLUDED.goal_type,
-        diet_preference = EXCLUDED.diet_preference, calorie_target = EXCLUDED.calorie_target,
-        protein_target = EXCLUDED.protein_target, carbs_target = EXCLUDED.carbs_target,
-        fats_target = EXCLUDED.fats_target, hydration_target = EXCLUDED.hydration_target,
-        onboarding_completed = EXCLUDED.onboarding_completed
-    `, [clerk_user_id, name, email, age, gender, height, weight,
-        activity_level, goal_type, diet_preference, calorie_target,
-        protein_target, carbs_target, fats_target, hydration_target,
-        onboarding_completed]);
+    const existing = await db.query('SELECT clerk_user_id FROM users WHERE clerk_user_id = $1', [clerk_user_id]);
+    
+    if (existing.rows.length > 0) {
+      await db.query(`
+        UPDATE users SET
+          name = $2, email = $3, age = $4, gender = $5, height = $6, weight = $7,
+          activity_level = $8, goal_type = $9, diet_preference = $10,
+          calorie_target = $11, protein_target = $12, carbs_target = $13,
+          fats_target = $14, hydration_target = $15, onboarding_completed = $16
+        WHERE clerk_user_id = $1
+      `, [clerk_user_id, name, email, age, gender, height, weight,
+          activity_level, goal_type, diet_preference, calorie_target,
+          protein_target, carbs_target, fats_target, hydration_target,
+          onboarding_completed]);
+    } else {
+      await db.query(`
+        INSERT INTO users (
+          clerk_user_id, name, email, age, gender, height, weight,
+          activity_level, goal_type, diet_preference, calorie_target,
+          protein_target, carbs_target, fats_target, hydration_target,
+          onboarding_completed
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      `, [clerk_user_id, name, email, age, gender, height, weight,
+          activity_level, goal_type, diet_preference, calorie_target,
+          protein_target, carbs_target, fats_target, hydration_target,
+          onboarding_completed]);
+    }
 
     console.log('✅ User saved:', clerk_user_id);
     res.json({ success: true, message: 'User profile saved' });
@@ -115,7 +219,7 @@ app.post('/api/users', async (req, res) => {
 
 app.get('/api/users/:clerk_user_id', async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await db.query(
       'SELECT * FROM users WHERE clerk_user_id = $1',
       [req.params.clerk_user_id]
     );
@@ -134,7 +238,7 @@ app.get('/api/users/:clerk_user_id', async (req, res) => {
 app.post('/api/meals', async (req, res) => {
   const { user_id, food_name, calories, protein, carbs, fats, meal_type } = req.body;
   try {
-    const result = await pool.query(`
+    const result = await db.query(`
       INSERT INTO meals (user_id, food_name, calories, protein, carbs, fats, meal_type)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
     `, [user_id, food_name, calories, protein, carbs, fats, meal_type]);
@@ -146,7 +250,7 @@ app.post('/api/meals', async (req, res) => {
 
 app.get('/api/meals/:user_id', async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await db.query(
       'SELECT * FROM meals WHERE user_id = $1 ORDER BY created_at DESC',
       [req.params.user_id]
     );
@@ -158,7 +262,7 @@ app.get('/api/meals/:user_id', async (req, res) => {
 
 app.delete('/api/meals/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM meals WHERE id = $1', [req.params.id]);
+    await db.query('DELETE FROM meals WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'Meal deleted' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -170,7 +274,7 @@ app.delete('/api/meals/:id', async (req, res) => {
 app.get('/api/water/:user_id', async (req, res) => {
   const { date = new Date().toISOString().split('T')[0] } = req.query;
   try {
-    const result = await pool.query(
+    const result = await db.query(
       'SELECT * FROM water_logs WHERE user_id = $1 AND date = $2',
       [req.params.user_id, date]
     );
@@ -185,14 +289,27 @@ app.put('/api/water', async (req, res) => {
   if (!user_id || amount_ml == null) {
     return res.status(400).json({ success: false, error: 'Missing user_id or amount_ml' });
   }
+  const targetDate = date || new Date().toISOString().split('T')[0];
   try {
-    await pool.query(`
-      INSERT INTO water_logs (user_id, date, amount_ml)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, date) DO UPDATE SET amount_ml = $3
-    `, [user_id, date || new Date().toISOString().split('T')[0], amount_ml]);
+    const existing = await db.query(
+      'SELECT id FROM water_logs WHERE user_id = $1 AND date = $2',
+      [user_id, targetDate]
+    );
+
+    if (existing.rows.length > 0) {
+      await db.query(
+        'UPDATE water_logs SET amount_ml = $3 WHERE user_id = $1 AND date = $2',
+        [user_id, targetDate, amount_ml]
+      );
+    } else {
+      await db.query(
+        'INSERT INTO water_logs (user_id, date, amount_ml) VALUES ($1, $2, $3)',
+        [user_id, targetDate, amount_ml]
+      );
+    }
     res.json({ success: true });
   } catch (error) {
+    console.error('Error saving water log:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -251,7 +368,6 @@ Return ONLY a valid JSON object (no markdown, no code blocks) with exactly these
     res.json({ success: true, plan });
   } catch (error) {
     console.error('Gemini Error:', error.message);
-    // Return fallback instead of erroring
     res.json({ success: true, plan: fallbackPlan });
   }
 });
@@ -289,186 +405,34 @@ Be direct, practical, and mention a specific Indian food. Return only plain text
   }
 });
 
-// ── INTENT CLASSIFIER ─────────────────────────────────────────
-
-const NUTRITION_KEYWORDS = [
-  // Food & eating
-  'calorie', 'calories', 'kcal', 'food', 'meal', 'eat', 'eating', 'diet',
-  'nutrition', 'nutrient', 'protein', 'carb', 'carbs', 'carbohydrate', 'fat',
-  'fats', 'macro', 'macros', 'fiber', 'vitamin', 'mineral', 'micronutrient',
-  // Specific foods
-  'breakfast', 'lunch', 'dinner', 'snack', 'recipe', 'ingredient', 'cook',
-  'dosa', 'idli', 'roti', 'chapati', 'rice', 'dal', 'paneer', 'chicken',
-  'biryani', 'poha', 'upma', 'sabzi', 'curry', 'samosa', 'paratha',
-  'oats', 'egg', 'milk', 'curd', 'yogurt', 'banana', 'fruit', 'vegetable',
-  'salad', 'soup', 'smoothie', 'juice', 'tea', 'coffee', 'nuts', 'almonds',
-  // Fitness & body
-  'weight', 'fat', 'muscle', 'body', 'bmi', 'obesity', 'overweight',
-  'underweight', 'slim', 'lean', 'bulk', 'cut', 'shred', 'toned',
-  'fitness', 'gym', 'workout', 'exercise', 'training', 'cardio', 'lifting',
-  'strength', 'endurance', 'yoga', 'walk', 'run', 'jogging', 'cycling',
-  // Goals
-  'lose weight', 'weight loss', 'fat loss', 'gain muscle', 'muscle gain',
-  'maintain', 'goal', 'target', 'deficit', 'surplus', 'tdee', 'bmr',
-  // Health
-  'health', 'healthy', 'hydration', 'water', 'hydrate', 'detox',
-  'sugar', 'diabetes', 'cholesterol', 'blood pressure', 'thyroid',
-  'digestion', 'gut', 'metabolism', 'energy', 'stamina', 'immunity',
-  // Supplements & advice
-  'supplement', 'protein powder', 'whey', 'creatine', 'vitamin d',
-  'omega', 'multivitamin', 'pre-workout', 'post-workout', 'before gym',
-  'after gym', 'indian food', 'vegetarian', 'vegan', 'non-veg', 'keto',
-  'intermittent fasting', 'fasting', 'portion', 'serving',
-];
-
-// Explicit off-topic signals — high-confidence blocklist
-const OFF_TOPIC_KEYWORDS = [
-  'weather', 'temperature', 'rain', 'sunny', 'forecast', 'humidity',
-  'cricket', 'ipl', 'football', 'match', 'score', 'team', 'player', 'sports result',
-  'virat', 'kohli', 'dhoni', 'ronaldo', 'messi', 'sachin',
-  'politics', 'election', 'government', 'minister', 'president', 'prime minister',
-  'coding', 'programming', 'javascript', 'python', 'html', 'css', 'react',
-  'movie', 'film', 'actor', 'actress', 'bollywood', 'netflix', 'series',
-  'song', 'music', 'singer', 'album', 'spotify',
-  'joke', 'funny', 'humor', 'riddle', 'prank',
-  'history', 'war', 'empire', 'kingdom', 'ancient',
-  'geography', 'country', 'capital', 'continent', 'ocean',
-  'stock', 'market', 'share', 'invest', 'crypto', 'bitcoin',
-  'celebrity', 'famous', 'gossip', 'trending',
-  'translate', 'language', 'grammar', 'essay', 'poem',
-];
-
-/**
- * Classify whether a message is nutrition/fitness related.
- * Returns { isNutrition: boolean, confidence: number (0-100), reason: string }
- */
-function classifyIntent(message) {
-  const lower = message.toLowerCase().trim();
-  const words = lower.split(/\s+/);
-
-  // Check explicit off-topic blocklist first (fast exit)
-  const offTopicHit = OFF_TOPIC_KEYWORDS.find(kw => lower.includes(kw));
-  if (offTopicHit) {
-    return { isNutrition: false, confidence: 5, reason: `off-topic keyword: "${offTopicHit}"` };
-  }
-
-  // Count nutrition keyword matches (weighted by word length — longer = more specific)
-  let score = 0;
-  let matchedKeywords = [];
-
-  for (const kw of NUTRITION_KEYWORDS) {
-    if (lower.includes(kw)) {
-      // Multi-word keywords score higher
-      const weight = kw.split(' ').length > 1 ? 25 : 10;
-      score += weight;
-      matchedKeywords.push(kw);
-      if (score >= 100) break; // cap at 100
-    }
-  }
-
-  // Bonus: short queries with food-adjacent intent words
-  const intentWords = ['how', 'what', 'suggest', 'recommend', 'tell me', 'can i', 'should i', 'help', 'analyze', 'plan', 'calculate', 'best', 'good', 'bad', 'much', 'many'];
-  const hasIntentWord = intentWords.some(w => lower.includes(w));
-  if (hasIntentWord && score > 0) score = Math.min(score + 10, 100);
-
-  const confidence = Math.min(score, 100);
-  const isNutrition = confidence >= 15; // minimum threshold
-
-  return {
-    isNutrition,
-    confidence,
-    reason: matchedKeywords.length > 0 ? `matched: ${matchedKeywords.slice(0, 3).join(', ')}` : 'no nutrition keywords found',
-  };
-}
-
-// ── AI CHAT ASSISTANT ─────────────────────────────────────────
-
 app.post('/api/ai-chat', async (req, res) => {
-  const { message, profile, history = [] } = req.body;
+  const { message, profile, history } = req.body;
 
-  if (!message || !message.trim()) {
-    return res.status(400).json({ success: false, error: 'Message is required' });
-  }
-
-  // ── Step 1: Intent Classification ──────────────────────────
-  const intent = classifyIntent(message.trim());
-  console.log(`[Intent] "${message.slice(0, 60)}" → nutrition=${intent.isNutrition}, confidence=${intent.confidence}%, reason=${intent.reason}`);
-
-  // ── Step 2: Reject off-topic queries ───────────────────────
-  if (!intent.isNutrition) {
-    const rejectionMessage = intent.confidence <= 5
-      ? `That's outside my area of expertise. I'm **Calorix AI**, your personal nutrition and fitness assistant. I can help you with:\n- 🥗 Meal planning & Indian food suggestions\n- 💪 Protein, calorie & macro tracking\n- 🏋️ Gym diet & workout nutrition\n- 💧 Hydration & healthy habits\n- 🎯 Weight loss or muscle gain plans\n\nTry asking: *"Suggest a high protein Indian breakfast"*`
-      : `I specialize only in **nutrition, fitness, and health**. I'm not able to help with that topic.\n\nHere's what I *can* help you with:\n- Calorie breakdown for Indian foods\n- Personalized meal plans\n- Pre/post workout nutrition\n- Hydration and healthy habits\n\nTry: *"How many calories are in dosa?"*`;
-
-    return res.json({
-      success: true,
-      reply: rejectionMessage,
-      rejected: true,
-      confidence: intent.confidence,
-    });
-  }
-
-  // ── Step 3: Low confidence — soft warning but still answer ─
-  const lowConfidencePrefix = intent.confidence < 30
-    ? `I'll do my best to answer from a nutrition perspective!\n\n`
-    : '';
-
-  // ── Step 4: Standard fallback (no Gemini key) ──────────────
-  const fallbackReply = `${lowConfidencePrefix}Based on your **${profile?.goal_type || 'fitness'}** goal, focus on whole foods and aim to stay within your **${profile?.calorie_target || 2000} kcal** daily target. My AI connection is temporarily limited — please try again shortly for a detailed response.`;
+  const fallbackReply = "I am currently running in offline mode. Please ensure the backend is connected to Gemini AI.";
 
   if (!genAI) {
-    return res.json({ success: true, reply: fallbackReply, rejected: false });
+    return res.json({ success: true, reply: fallbackReply });
   }
 
-  // ── Step 5: Gemini AI Response ─────────────────────────────
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-    const systemContext = `You are Calorix AI, a friendly and expert Indian nutrition and fitness coach. Your ONLY domain is nutrition, food, fitness, health, and wellness.
-
-STRICT RULES:
-- NEVER answer questions unrelated to nutrition, food, fitness, health, or wellness
-- If somehow an off-topic question reaches you, respond: "I only answer nutrition and fitness questions."
-- Keep responses concise (2-4 sentences usually)
-- Focus on Indian foods and cuisine when relevant
-- Be specific with food names, quantities, and calorie estimates
-- Use light markdown (bold for food names, bullets for lists)
-- Be encouraging and motivational
-
-User Profile:
-- Goal: ${profile?.goal_type || 'Maintain Weight'}
-- Dietary Preference: ${profile?.diet_preference || 'Vegetarian'}
-- Daily Calorie Target: ${profile?.calorie_target || 2000} kcal
-- Protein Target: ${profile?.protein_target || 120}g
-- Activity Level: ${profile?.activity_level || 'Moderately Active'}
-- Age: ${profile?.age || '—'}, Weight: ${profile?.weight || '—'}kg, Height: ${profile?.height || '—'}cm`;
-
-    const conversationHistory = history
-      .filter(m => m.content && !m.rejected)
-      .map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      }));
-
     const chat = model.startChat({
-      history: conversationHistory.length > 0 ? conversationHistory : undefined,
+      history: history.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      })),
+      systemInstruction: { parts: [{ text: `You are an Indian nutrition expert. User goal: ${profile?.goal_type}. Keep your response concise, friendly, and formatted in markdown if needed.` }] }
     });
 
-    const fullMessage = conversationHistory.length === 0
-      ? `${systemContext}\n\nUser question: ${message}`
-      : message;
-
-    const result = await chat.sendMessage(fullMessage);
-    const reply = `${lowConfidencePrefix}${result.response.text().trim()}`;
-
-    res.json({ success: true, reply, rejected: false, confidence: intent.confidence });
+    const result = await chat.sendMessage([{ text: message }]);
+    res.json({ success: true, reply: result.response.text().trim() });
   } catch (error) {
     console.error('Gemini Chat Error:', error.message);
-    res.json({ success: true, reply: fallbackReply, rejected: false });
+    res.json({ success: true, reply: fallbackReply });
   }
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Calorix Backend running on port ${PORT} with Gemini AI`);
+  console.log(`🚀 Calorix Backend running on port ${PORT}`);
 });

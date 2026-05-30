@@ -4,8 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Send, Loader2, RefreshCw, MessageSquare, User, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import api from '@/lib/api';
 
 const SUGGESTED_PROMPTS = [
   { icon: '🥘', text: 'Can I eat dosa during weight loss?' },
@@ -180,19 +179,14 @@ export default function Assistant({ profile }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API}/api/ai-chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          profile,
-          history: messages
-            .filter(m => !m.typing && m.id !== 'welcome' && !m.rejected)
-            .slice(-6)
-            .map(m => ({ role: m.role, content: m.content })),
-        }),
+      const data = await api.aiChat({
+        message: userText,
+        profile,
+        history: messages
+          .filter(m => !m.typing && m.id !== 'welcome' && !m.rejected)
+          .slice(-6)
+          .map(m => ({ role: m.role, content: m.content })),
       });
-      const data = await res.json();
       if (!data.success) throw new Error(data.error || 'AI failed');
 
       setMessages(prev => [

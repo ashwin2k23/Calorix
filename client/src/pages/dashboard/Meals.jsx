@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Trash2, Coffee, Sun, Apple, Moon } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import api from '@/lib/api';
 
 const MEAL_TYPES = [
   { id: 'Breakfast', icon: <Coffee className="w-4 h-4" />, color: 'text-orange-400' },
@@ -48,8 +47,7 @@ export default function Meals({ user }) {
     if (!user) return;
     const fetchMeals = async () => {
       try {
-        const response = await fetch(`${API}/api/meals/${user.id}`);
-        const data = await response.json();
+        const data = await api.getMeals(user.id);
         if (data.success) setMeals(data.data);
       } catch (error) {
         console.error('Failed to fetch meals:', error);
@@ -80,25 +78,20 @@ export default function Meals({ user }) {
         fats: food.f,
         meal_type: selectedType
       };
-      const response = await fetch(`${API}/api/meals`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMeal)
-      });
-      const data = await response.json();
+      const data = await api.addMeal(newMeal);
       if (data.success) {
         setMeals(prev => [{ ...newMeal, id: data.data.id, created_at: new Date().toISOString() }, ...prev]);
         toast.success(`${food.name} added to ${selectedType}!`);
       }
-    } catch {
-      toast.error('Failed to add meal.');
+    } catch (error) {
+      toast.error(error.message || 'Failed to add meal.');
     }
   };
 
   const removeMeal = async (id, name) => {
     try {
-      const response = await fetch(`${API}/api/meals/${id}`, { method: 'DELETE' });
-      if (response.ok) {
+      const data = await api.deleteMeal(id);
+      if (data.success) {
         setMeals(prev => prev.filter(m => m.id !== id));
         toast.info(`${name} removed.`);
       }
@@ -110,142 +103,150 @@ export default function Meals({ user }) {
   const totalCals = meals.reduce((a, m) => a + (m.calories || 0), 0);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="space-y-8 max-w-[1400px] mx-auto select-none"
+    >
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-1">Food Logging</h1>
-        <p className="text-muted-foreground">Track your daily meals from our Indian food database.</p>
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Food Logging</h1>
+        <p className="text-slate-400 text-sm font-semibold">Log and track your daily nutrition intake with our database.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left — Add Meal */}
-        <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Add a Meal</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Meal Type Selector */}
-            <div className="grid grid-cols-4 gap-2">
-              {MEAL_TYPES.map(type => (
+        <div className="lg:col-span-7 rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Add a Meal</h2>
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 uppercase tracking-wider">
+              {selectedType} Selected
+            </span>
+          </div>
+
+          {/* Meal Type Selector */}
+          <div className="grid grid-cols-4 gap-3">
+            {MEAL_TYPES.map(type => {
+              const isSel = selectedType === type.id;
+              return (
                 <button
                   key={type.id}
                   onClick={() => setSelectedType(type.id)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-xs font-medium transition-all ${
-                    selectedType === type.id
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-white/10 bg-black/20 text-muted-foreground hover:border-white/20'
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-xs font-bold tracking-wide transition-all duration-300 ${
+                    isSel
+                      ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                      : 'border-white/5 bg-white/[0.01] text-slate-400 hover:text-white hover:border-white/10 hover:bg-white/[0.02]'
                   }`}
                 >
-                  <span className={selectedType === type.id ? 'text-primary' : type.color}>{type.icon}</span>
+                  <span className={isSel ? 'text-indigo-400 scale-110 transition-transform' : `${type.color}`}>{type.icon}</span>
                   {type.id}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search Indian food database..."
+              className="w-full bg-black/30 border border-white/[0.05] rounded-2xl pl-12 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-semibold"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Food List */}
+          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+            {filteredFoods.map((food, i) => (
+              <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.01] border border-white/[0.03] hover:border-indigo-500/30 transition-all duration-300 hover:bg-white/[0.02] group">
+                <div className="flex items-center gap-4">
+                  <img src={food.image} alt={food.name} className="w-12 h-12 object-cover rounded-xl border border-white/10 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-sm text-white">{food.name}</h4>
+                    <p className="text-xs text-slate-400 font-semibold mt-1">
+                      {food.cal} kcal · P:{food.p}g · C:{food.c}g · F:{food.f}g
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline"
+                  className="rounded-xl h-9 px-4 border-white/10 hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition-all flex-shrink-0 text-xs font-bold"
+                  onClick={() => addMeal(food)}
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Add
+                </Button>
+              </div>
+            ))}
+            {filteredFoods.length === 0 && (
+              <div className="text-center py-12 text-slate-500 text-sm font-semibold">No food found matching search term.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Right — Logged Meals */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+            <div className="flex justify-between items-center pb-4 border-b border-white/[0.04]">
+              <h2 className="text-xl font-extrabold text-white tracking-tight">Today's Log</h2>
+              <div className="text-right">
+                <span className="text-2xl font-black text-indigo-400">{totalCals}</span>
+                <span className="text-xs text-slate-500 font-bold ml-1">kcal</span>
+              </div>
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex gap-2 flex-wrap">
+              {['all', ...MEAL_TYPES.map(t => t.id)].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`text-xs px-3.5 py-1.5 rounded-full font-bold tracking-wide transition-all capitalize ${
+                    activeTab === tab
+                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.1)]'
+                      : 'bg-white/[0.01] text-slate-400 border border-white/5 hover:border-white/10 hover:text-white'
+                  }`}
+                >
+                  {tab}
                 </button>
               ))}
             </div>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search Indian food..."
-                className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Food List */}
-            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
-              {filteredFoods.map((food, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-black/20 border border-white/5 hover:border-primary/30 transition-all hover:bg-card/60 group">
-                  <div className="flex items-center gap-3">
-                    <img src={food.image} alt={food.name} className="w-11 h-11 object-cover rounded-lg border border-white/10 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-sm">{food.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {food.cal} kcal · P:{food.p}g · C:{food.c}g · F:{food.f}g
-                      </p>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline"
-                    className="rounded-full h-8 px-3 border-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/40 transition-all flex-shrink-0"
-                    onClick={() => addMeal(food)}
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+              <AnimatePresence>
+                {displayedMeals.map((meal) => (
+                  <motion.div
+                    key={meal.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/[0.03] group hover:border-white/[0.08] transition-all duration-300"
                   >
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Add
-                  </Button>
+                    <div>
+                      <h4 className="text-sm font-bold text-white capitalize">{meal.food_name}</h4>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">{meal.meal_type}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-black text-indigo-400 bg-indigo-500/5 border border-indigo-500/10 px-2.5 py-1 rounded-xl">{meal.calories} kcal</span>
+                      <button
+                        onClick={() => removeMeal(meal.id, meal.food_name)}
+                        className="text-slate-500 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-500/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {displayedMeals.length === 0 && !loading && (
+                <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl opacity-40">
+                  <p className="text-slate-400 text-sm font-bold">
+                    {activeTab === 'all' ? "No meals logged today." : `No ${activeTab} meals logged.`}
+                  </p>
                 </div>
-              ))}
-              {filteredFoods.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground text-sm">No food found matching your search.</div>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Right — Logged Meals */}
-        <div className="space-y-4">
-          <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-            <CardHeader className="pb-3 border-b border-white/5">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-base">Today's Log</CardTitle>
-                <div className="text-right">
-                  <span className="text-xl font-bold text-primary">{totalCals}</span>
-                  <span className="text-xs text-muted-foreground ml-1">kcal</span>
-                </div>
-              </div>
-              {/* Filter tabs */}
-              <div className="flex gap-1.5 mt-3 flex-wrap">
-                {['all', ...MEAL_TYPES.map(t => t.id)].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-xs px-3 py-1 rounded-full transition-all capitalize ${
-                      activeTab === tab
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-black/20 text-muted-foreground border border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
-                <AnimatePresence>
-                  {displayedMeals.map((meal) => (
-                    <motion.div
-                      key={meal.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5 group hover:border-white/10 transition-all"
-                    >
-                      <div>
-                        <h4 className="text-sm font-medium">{meal.food_name}</h4>
-                        <p className="text-xs text-muted-foreground uppercase mt-0.5 tracking-wide">{meal.meal_type}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold bg-white/5 px-2 py-1 rounded-lg">{meal.calories} kcal</span>
-                        <button
-                          onClick={() => removeMeal(meal.id, meal.food_name)}
-                          className="text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                {displayedMeals.length === 0 && !loading && (
-                  <div className="text-center py-10 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-xl">
-                    <p className="text-muted-foreground text-sm">
-                      {activeTab === 'all' ? "You haven't logged any meals today." : `No ${activeTab} meals logged yet.`}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
     </motion.div>

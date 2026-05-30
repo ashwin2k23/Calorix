@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import api from '@/lib/api';
 
 const mealIcons = { breakfast: '🌅', lunch: '☀️', snack: '🍎', dinner: '🌙' };
 
@@ -15,12 +14,7 @@ export default function AIPlanner({ profile }) {
   const generatePlan = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/ai-diet`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile })
-      });
-      const data = await res.json();
+      const data = await api.getAIDiet(profile);
       if (data.success && data.plan) {
         setPlan(data.plan);
       } else throw new Error('Failed');

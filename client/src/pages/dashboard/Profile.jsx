@@ -14,17 +14,17 @@ const DIET_OPTS      = ['Vegetarian', 'Non-Vegetarian', 'Vegan'];
 
 function getBMICategory(bmi) {
   if (bmi < 18.5) return { label: 'Underweight', color: 'text-blue-400'   };
-  if (bmi < 25)   return { label: 'Normal',       color: 'text-primary'    };
+  if (bmi < 25)   return { label: 'Normal',       color: 'text-indigo-400' };
   if (bmi < 30)   return { label: 'Overweight',   color: 'text-yellow-400' };
   return              { label: 'Obese',         color: 'text-red-400'    };
 }
 
-function StatBox({ label, value, color = 'text-foreground', icon }) {
+function StatBox({ label, value, color = 'text-white', icon }) {
   return (
-    <div className="p-4 rounded-xl bg-black/20 border border-white/5 text-center">
-      {icon && <div className="flex justify-center mb-1">{icon}</div>}
-      <p className={`text-xl font-bold ${color}`}>{value}</p>
-      <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wider">{label}</p>
+    <div className="p-4 rounded-2xl bg-black/30 border border-white/[0.04] text-center transition-all hover:border-indigo-500/10">
+      {icon && <div className="flex justify-center mb-2">{icon}</div>}
+      <p className={`text-xl font-black tracking-tight ${color}`}>{value}</p>
+      <p className="text-[9px] font-bold text-slate-500 mt-1 uppercase tracking-wider">{label}</p>
     </div>
   );
 }
@@ -102,93 +102,94 @@ export default function Profile({ profile, user, onProfileUpdate }) {
     window.location.href = '/#/onboarding';
   };
 
-  const inputCls = 'w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all';
-  const selectCls = `${inputCls} text-foreground`;
+  const inputCls = 'w-full bg-black/30 border border-white/[0.05] rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-white transition-all font-semibold';
+  const selectCls = `${inputCls} text-white`;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 max-w-4xl mx-auto">
+    <motion.div 
+      initial={{ opacity: 0, y: 16 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="space-y-6 max-w-4xl mx-auto pb-12 select-none"
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">Profile & Settings</h1>
-          <p className="text-muted-foreground text-sm">Manage your body metrics, goals, and preferences.</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Profile & Settings</h1>
+          <p className="text-slate-400 text-sm font-semibold">Manage your body metrics, goals, and preferences.</p>
         </div>
         {!editing ? (
-          <Button onClick={() => setEditing(true)} variant="outline" className="border-white/10 rounded-xl gap-2 self-start sm:self-auto">
-            <Edit3 className="w-4 h-4" /> Edit Profile
+          <Button onClick={() => setEditing(true)} className="bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl px-5 py-2.5 font-bold gap-2 self-start sm:self-auto transition-all">
+            <Edit3 className="w-4 h-4 text-indigo-400" /> Edit Profile
           </Button>
         ) : (
           <div className="flex gap-2 self-start sm:self-auto">
-            <Button onClick={() => setEditing(false)} variant="outline" className="border-white/10 rounded-xl gap-1">
-              <X className="w-4 h-4" /> Cancel
+            <Button onClick={() => setEditing(false)} className="bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl px-4 py-2.5 font-bold gap-1 transition-all">
+              <X className="w-4 h-4 text-rose-400" /> Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="rounded-xl bg-gradient-to-r from-primary to-[#00c2ff] gap-2">
+            <Button onClick={handleSave} disabled={saving} className="rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 font-bold gap-2 transition-all shadow-[0_4px_16px_rgba(99,102,241,0.25)]">
               {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-              Save
+              Save Changes
             </Button>
           </div>
         )}
       </div>
 
       {/* Avatar + Identity */}
-      <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-        <CardContent className="p-5 flex items-center gap-5">
-          <div className="relative">
-            <img src={user?.imageUrl} alt="Avatar" className="w-16 h-16 rounded-full border-2 border-primary/30 object-cover" />
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-background flex items-center justify-center">
-              <User className="w-2.5 h-2.5 text-primary-foreground" />
-            </div>
+      <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl flex items-center gap-6">
+        <div className="relative">
+          <img src={user?.imageUrl} alt="Avatar" className="w-20 h-20 rounded-full border-2 border-indigo-500/20 object-cover" />
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 border-2 border-[#090b14] flex items-center justify-center">
+            <User className="w-3 h-3 text-white" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold">{user?.fullName || 'User'}</h2>
-            <p className="text-sm text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
-            <div className="flex gap-2 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">{profile?.goal_type}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground">{profile?.diet_preference}</span>
-            </div>
+        </div>
+        <div>
+          <h2 className="text-2xl font-extrabold text-white tracking-tight">{user?.fullName || 'User'}</h2>
+          <p className="text-sm text-slate-400 font-semibold">{user?.primaryEmailAddress?.emailAddress}</p>
+          <div className="flex gap-2 mt-3">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">{profile?.goal_type}</span>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400">{profile?.diet_preference}</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* BMI Card */}
       {bmi && (
-        <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5"><Activity className="w-3 h-3" />Body Mass Index</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-extrabold">{bmi}</span>
-                  <span className={`text-sm font-semibold ${bmiCat?.color}`}>{bmiCat?.label}</span>
-                </div>
-              </div>
-              {/* BMI scale visual */}
-              <div className="hidden sm:flex items-center gap-1 text-xs">
-                {[
-                  { l: 'Under', c: 'bg-blue-400', w: '20%', from: 0, to: 18.5 },
-                  { l: 'Normal', c: 'bg-primary', w: '35%', from: 18.5, to: 25 },
-                  { l: 'Over', c: 'bg-yellow-400', w: '25%', from: 25, to: 30 },
-                  { l: 'Obese', c: 'bg-red-400', w: '20%', from: 30, to: 40 },
-                ].map(seg => (
-                  <div key={seg.l} className="text-center">
-                    <div className={`h-3 rounded-sm ${seg.c} ${parseFloat(bmi) >= seg.from && parseFloat(bmi) < seg.to ? 'opacity-100 ring-2 ring-white/40' : 'opacity-30'}`} style={{ width: '40px' }} />
-                    <p className="text-muted-foreground mt-0.5" style={{ fontSize: 9 }}>{seg.l}</p>
-                  </div>
-                ))}
+        <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" />Body Mass Index</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-black text-white tracking-tight">{bmi}</span>
+                <span className={`text-sm font-extrabold ${bmiCat?.color}`}>{bmiCat?.label}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            {/* BMI scale visual */}
+            <div className="hidden sm:flex items-center gap-1 text-xs">
+              {[
+                { l: 'Under', c: 'bg-blue-400', w: '20%', from: 0, to: 18.5 },
+                { l: 'Normal', c: 'bg-indigo-400', w: '35%', from: 18.5, to: 25 },
+                { l: 'Over', c: 'bg-yellow-400', w: '25%', from: 25, to: 30 },
+                { l: 'Obese', c: 'bg-red-400', w: '20%', from: 30, to: 40 },
+              ].map(seg => (
+                <div key={seg.l} className="text-center">
+                  <div className={`h-3 rounded-sm ${seg.c} ${parseFloat(bmi) >= seg.from && parseFloat(bmi) < seg.to ? 'opacity-100 ring-2 ring-white/40' : 'opacity-30'}`} style={{ width: '40px' }} />
+                  <p className="text-[9px] font-bold text-slate-500 mt-1">{seg.l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Body Metrics */}
-        <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2"><User className="w-4 h-4 text-primary" /> Body Metrics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <h3 className="text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+            <User className="w-4 h-4 text-indigo-400" /> Body Metrics
+          </h3>
+          <div className="space-y-4">
             {editing ? (
               <>
                 {[
@@ -197,147 +198,143 @@ export default function Profile({ profile, user, onProfileUpdate }) {
                   { label: 'Weight (kg)', key: 'weight', type: 'number', placeholder: 'e.g. 70' },
                 ].map(({ label, key, type, placeholder }) => (
                   <div key={key}>
-                    <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{label}</label>
                     <input type={type} value={form[key]} onChange={e => set(key, e.target.value)}
                       className={inputCls} placeholder={placeholder} />
                   </div>
                 ))}
               </>
             ) : (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 <StatBox label="Age" value={`${profile?.age}y`} />
                 <StatBox label="Height" value={`${profile?.height}cm`} />
                 <StatBox label="Weight" value={`${profile?.weight}kg`} />
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Goals & Activity */}
-        <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2"><Target className="w-4 h-4 text-[#00c2ff]" /> Goals & Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <h3 className="text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+            <Target className="w-4 h-4 text-indigo-400" /> Goals & Activity
+          </h3>
+          <div className="space-y-4">
             {editing ? (
               <>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Activity Level</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Activity Level</label>
                   <select value={form.activity_level} onChange={e => set('activity_level', e.target.value)} className={selectCls}>
-                    {ACTIVITY_OPTS.map(o => <option key={o} value={o} className="bg-background">{o}</option>)}
+                    {ACTIVITY_OPTS.map(o => <option key={o} value={o} className="bg-[#090b14] text-white">{o}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Fitness Goal</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Fitness Goal</label>
                   <select value={form.goal_type} onChange={e => set('goal_type', e.target.value)} className={selectCls}>
-                    {GOAL_OPTS.map(o => <option key={o} value={o} className="bg-background">{o}</option>)}
+                    {GOAL_OPTS.map(o => <option key={o} value={o} className="bg-[#090b14] text-white">{o}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Diet Preference</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Diet Preference</label>
                   <select value={form.diet_preference} onChange={e => set('diet_preference', e.target.value)} className={selectCls}>
-                    {DIET_OPTS.map(o => <option key={o} value={o} className="bg-background">{o}</option>)}
+                    {DIET_OPTS.map(o => <option key={o} value={o} className="bg-[#090b14] text-white">{o}</option>)}
                   </select>
                 </div>
               </>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3 font-semibold">
                 {[
                   { label: 'Activity Level', value: profile?.activity_level },
                   { label: 'Fitness Goal',   value: profile?.goal_type      },
                   { label: 'Diet',           value: profile?.diet_preference },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                    <span className="text-sm text-muted-foreground">{label}</span>
-                    <span className="text-sm font-semibold">{value}</span>
+                  <div key={label} className="flex justify-between items-center py-2.5 border-b border-white/[0.04] last:border-0">
+                    <span className="text-sm text-slate-400">{label}</span>
+                    <span className="text-sm text-white">{value}</span>
                   </div>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Nutrition Targets */}
-      <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2"><Flame className="w-4 h-4 text-primary" /> Daily Nutrition Targets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatBox label="Calories"  value={`${profile?.calorie_target} kcal`}            color="text-primary"     icon={<Flame    className="w-4 h-4 text-primary"     />} />
-            <StatBox label="Protein"   value={`${profile?.protein_target}g`}                color="text-[#9b6dff]"   icon={<Zap      className="w-4 h-4 text-[#9b6dff]"   />} />
-            <StatBox label="Carbs"     value={`${profile?.carbs_target}g`}                  color="text-orange-400"  icon={<Target   className="w-4 h-4 text-orange-400"  />} />
-            <StatBox label="Hydration" value={`${((profile?.hydration_target || 3000) / 1000).toFixed(1)}L`} color="text-blue-400" icon={<Droplets className="w-4 h-4 text-blue-400"  />} />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+        <h3 className="text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+          <Flame className="w-4 h-4 text-indigo-400" /> Daily Nutrition Targets
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <StatBox label="Calories"  value={`${profile?.calorie_target} kcal`}            color="text-indigo-400"  icon={<Flame    className="w-4 h-4 text-indigo-400"  />} />
+          <StatBox label="Protein"   value={`${profile?.protein_target}g`}                color="text-indigo-400"  icon={<Zap      className="w-4 h-4 text-indigo-400"  />} />
+          <StatBox label="Carbs"     value={`${profile?.carbs_target}g`}                  color="text-indigo-400"  icon={<Target   className="w-4 h-4 text-indigo-400"  />} />
+          <StatBox label="Hydration" value={`${((profile?.hydration_target || 3000) / 1000).toFixed(1)}L`} color="text-indigo-400" icon={<Droplets className="w-4 h-4 text-indigo-400" />} />
+        </div>
+      </div>
 
-      {/* Gamification Summary */}
-      <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Award className="w-4 h-4 text-yellow-400" /> Level & Achievements
-            <span className="ml-auto text-xs text-muted-foreground">
-              {badges.filter(b => b.earned).length}/{badges.length} badges
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Level Progress */}
-          <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-yellow-400/5 border border-yellow-400/15">
-            <div className="w-10 h-10 rounded-xl bg-yellow-400/15 flex items-center justify-center flex-shrink-0">
-              <Star className="w-5 h-5 text-yellow-400" />
+      {/* Level & Achievements */}
+      <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
+            <Award className="w-4 h-4 text-amber-400" /> Level & Achievements
+          </h3>
+          <span className="text-xs font-bold text-slate-500 lowercase">
+            {badges.filter(b => b.earned).length}/{badges.length} badges earned
+          </span>
+        </div>
+
+        {/* Level Progress */}
+        <div className="flex items-center gap-4 p-4 rounded-2xl bg-amber-400/5 border border-amber-400/10">
+          <div className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center flex-shrink-0">
+            <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+          </div>
+          <div className="flex-1">
+            <div className="flex justify-between mb-2">
+              <p className="text-sm font-bold text-white">Level {levelInfo.level} · {levelInfo.title}</p>
+              <p className="text-xs text-slate-400 font-bold">{levelInfo.xp} XP</p>
             </div>
-            <div className="flex-1">
-              <div className="flex justify-between mb-1">
-                <p className="text-sm font-bold">Level {levelInfo.level} · {levelInfo.title}</p>
-                <p className="text-xs text-muted-foreground">{levelInfo.xp} XP</p>
-              </div>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${levelInfo.progress}%` }}
-                  transition={{ duration: 1.2 }}
-                  className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-orange-400"
-                />
-              </div>
+            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${levelInfo.progress}%` }}
+                transition={{ duration: 1.2 }}
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400"
+              />
             </div>
           </div>
-          {/* Badge Grid */}
-          <div className="grid grid-cols-4 gap-2">
-            {badges.slice(0, 8).map(badge => (
-              <div
-                key={badge.id}
-                title={badge.desc}
-                className={`p-2 rounded-xl border text-center transition-all ${
-                  badge.earned
-                    ? 'bg-yellow-400/10 border-yellow-400/25'
-                    : 'bg-white/3 border-white/5 opacity-35'
-                }`}
-              >
-                <div className="text-xl mb-0.5">{badge.icon}</div>
-                <p className="text-[9px] text-muted-foreground leading-tight">{badge.name}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Badge Grid */}
+        <div className="grid grid-cols-4 gap-3">
+          {badges.slice(0, 8).map(badge => (
+            <div
+              key={badge.id}
+              title={badge.desc}
+              className={`p-3 rounded-2xl border text-center transition-all ${
+                badge.earned
+                  ? 'bg-amber-400/10 border-amber-400/20 shadow-[0_4px_12px_rgba(245,158,11,0.05)]'
+                  : 'bg-white/[0.01] border-white/5 opacity-30'
+              }`}
+            >
+              <div className="text-2xl mb-1 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]">{badge.icon}</div>
+              <p className="text-[10px] text-white font-extrabold leading-tight">{badge.name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Danger Zone */}
-      <Card className="border-white/5 bg-card/40 backdrop-blur-md">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-muted-foreground">Account Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={handleResetOnboarding} className="border-white/10 rounded-xl gap-2 text-muted-foreground hover:text-foreground">
-            <RotateCcw className="w-4 h-4" /> Redo Onboarding
+      <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
+        <h3 className="text-lg font-extrabold text-white tracking-tight">Account Actions</h3>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={handleResetOnboarding} className="bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl px-5 py-2.5 font-bold transition-all">
+            <RotateCcw className="w-4 h-4 text-indigo-400" /> Redo Onboarding
           </Button>
-          <Button variant="destructive" onClick={() => signOut({ redirectUrl: '/' })} className="rounded-xl gap-2">
-            <LogOut className="w-4 h-4" /> Sign Out
+          <Button onClick={() => signOut({ redirectUrl: '/' })} className="bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-300 rounded-2xl px-5 py-2.5 font-bold transition-all">
+            <LogOut className="w-4 h-4 text-rose-400" /> Sign Out
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }
