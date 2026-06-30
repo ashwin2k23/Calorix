@@ -5,7 +5,7 @@ const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-2xl border border-white/10 bg-card/40 backdrop-blur-md text-card-foreground shadow-2xl",
+      "bg-white rounded-[20px] border border-[#edf0f7] shadow-[0_4px_20px_rgba(18,38,110,0.08)] text-[#0E1929] transition-shadow hover:shadow-[0_8px_30px_rgba(18,38,110,0.12)]",
       className
     )}
     {...props}
@@ -14,32 +14,17 @@ const Card = React.forwardRef(({ className, ...props }, ref) => (
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
-    {...props}
-  />
+  <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
 ))
 CardHeader.displayName = "CardHeader"
 
 const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
-      className
-    )}
-    {...props}
-  />
+  <h3 ref={ref} className={cn("text-xl font-bold leading-none tracking-tight text-[#0E1929]", className)} {...props} />
 ))
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props}
-  />
+  <p ref={ref} className={cn("text-sm text-[#9aa0b0] font-medium", className)} {...props} />
 ))
 CardDescription.displayName = "CardDescription"
 
@@ -49,11 +34,7 @@ const CardContent = React.forwardRef(({ className, ...props }, ref) => (
 CardContent.displayName = "CardContent"
 
 const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
-    {...props}
-  />
+  <div ref={ref} className={cn("flex items-center p-6 pt-0 border-t border-[#f0f2f8] mt-2", className)} {...props} />
 ))
 CardFooter.displayName = "CardFooter"
 

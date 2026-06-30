@@ -1,145 +1,109 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { Target, TrendingUp } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function Goals({ profile, user, onProfileUpdate }) {
   const [weight, setWeight] = useState(profile?.weight || 75);
   const [height, setHeight] = useState(profile?.height || 175);
-  const [age, setAge] = useState(profile?.age || 25);
-  const [goal, setGoal] = useState(profile?.goal_type || 'Maintain Weight');
+  const [age, setAge]       = useState(profile?.age || 25);
+  const [goal, setGoal]     = useState(profile?.goal_type || 'Maintain Weight');
 
   useEffect(() => {
-    if (profile) {
-      setWeight(profile.weight);
-      setHeight(profile.height);
-      setAge(profile.age);
-      setGoal(profile.goal_type);
-    }
+    if (profile) { setWeight(profile.weight); setHeight(profile.height); setAge(profile.age); setGoal(profile.goal_type); }
   }, [profile]);
 
   const calculateTarget = () => {
-    const bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5; 
-    let tdee = bmr * 1.55; 
-    
+    const bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    const tdee = bmr * 1.55;
     if (goal === 'Lose Weight') return Math.round(tdee - 500);
     if (goal === 'Gain Muscle') return Math.round(tdee + 300);
     return Math.round(tdee);
   };
 
-  const handleSaveProfile = async () => {
+  const handleSave = async () => {
     if (!user) return;
     try {
-      const calorieTarget = calculateTarget();
-      const updatedProfile = {
-        ...profile,
-        clerk_user_id: user.id,
-        name: user.fullName || 'User',
-        weight, height, age,
-        goal_type: goal,
-        calorie_target: calorieTarget,
+      const cal = calculateTarget();
+      const updated = {
+        ...profile, clerk_user_id: user.id, name: user.fullName || 'User',
+        weight, height, age, goal_type: goal, calorie_target: cal,
         protein_target: Math.round(weight * 2.2),
-        carbs_target: Math.round((calorieTarget * 0.4) / 4),
-        fats_target: Math.round((calorieTarget * 0.3) / 9),
-        onboarding_completed: true
+        carbs_target: Math.round((cal * 0.4) / 4),
+        fats_target: Math.round((cal * 0.3) / 9),
+        onboarding_completed: true,
       };
-      await api.saveUser(updatedProfile);
-      localStorage.setItem('calorix_profile', JSON.stringify(updatedProfile));
-      toast.success('Goals updated successfully!');
+      await api.saveUser(updated);
+      localStorage.setItem('calorix_profile', JSON.stringify(updated));
+      toast.success('Goals updated!');
       if (onProfileUpdate) onProfileUpdate();
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to update goals.');
-    }
+    } catch { toast.error('Failed to update goals.'); }
   };
 
+  const target = calculateTarget();
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }} 
-      animate={{ opacity: 1, y: 0 }} 
-      transition={{ type: "spring", stiffness: 100, damping: 20 }}
-      className="space-y-8 max-w-[1400px] mx-auto select-none"
-    >
-      <div>
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Your Goals</h1>
-        <p className="text-slate-400 text-sm font-semibold">Set your profile and let us calculate your daily targets.</p>
+    <div className="space-y-5 max-w-[1400px] mx-auto select-none" style={{ fontFamily: "'DM Sans',sans-serif" }}>
+
+      <div className="xh-card p-7">
+        <p className="xh-label mb-1"><span className="inline-block w-2 h-2 rounded-full bg-[#3456c8] mr-2" />Goal Configuration</p>
+        <h1 className="text-3xl font-bold text-[#0E1929]">Your Goals</h1>
+        <p className="text-sm text-[#5a6478] mt-1">Set your body profile and we'll calculate your daily targets.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        {/* Left Card */}
-        <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl space-y-6">
-          <h2 className="text-xl font-extrabold text-white tracking-tight">Body Profile</h2>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Weight (kg)</label>
-              <input 
-                type="number" 
-                value={weight} 
-                onChange={(e) => setWeight(Number(e.target.value))}
-                className="w-full bg-black/30 border border-white/[0.05] rounded-2xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-white transition-all font-semibold"
-              />
+      <div className="grid md:grid-cols-2 gap-5 items-start">
+        {/* Form */}
+        <div className="xh-card p-7 space-y-5">
+          <h2 className="text-xl font-bold text-[#0E1929]">Body Profile</h2>
+          {[
+            { label: 'Weight (kg)', val: weight, set: setWeight },
+            { label: 'Height (cm)', val: height, set: setHeight },
+            { label: 'Age (years)',  val: age,    set: setAge    },
+          ].map(({ label, val, set }) => (
+            <div key={label}>
+              <label className="xh-label block mb-2">{label}</label>
+              <input type="number" value={val} onChange={e => set(Number(e.target.value))} className="xh-input" />
             </div>
-            <div>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Height (cm)</label>
-              <input 
-                type="number" 
-                value={height} 
-                onChange={(e) => setHeight(Number(e.target.value))}
-                className="w-full bg-black/30 border border-white/[0.05] rounded-2xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-white transition-all font-semibold"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Age</label>
-              <input 
-                type="number" 
-                value={age} 
-                onChange={(e) => setAge(Number(e.target.value))}
-                className="w-full bg-black/30 border border-white/[0.05] rounded-2xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-white transition-all font-semibold"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Goal</label>
-              <select 
-                value={goal} 
-                onChange={(e) => setGoal(e.target.value)}
-                className="w-full bg-black/30 border border-white/[0.05] rounded-2xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-white transition-all font-semibold"
-              >
-                <option className="bg-[#090b14] text-white" value="Lose Weight">Lose Weight</option>
-                <option className="bg-[#090b14] text-white" value="Maintain Weight">Maintain Weight</option>
-                <option className="bg-[#090b14] text-white" value="Gain Muscle">Gain Muscle</option>
-              </select>
-            </div>
-            <Button onClick={handleSaveProfile} className="w-full mt-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white py-3 font-bold transition-all shadow-[0_4px_16px_rgba(99,102,241,0.25)]">Save Profile</Button>
-          </div>
-        </div>
-
-        {/* Right Card */}
-        <div className="rounded-[2rem] bg-slate-950/40 border border-white/[0.04] p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group flex flex-col justify-between min-h-[400px]">
-          <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/10 transition-all duration-700" />
-          
+          ))}
           <div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight mb-2">Daily Target</h2>
-            <p className="text-xs text-slate-400 font-semibold leading-relaxed">
-              This is your calculated daily calorie target to achieve the goal of {goal.toLowerCase()}.
-            </p>
+            <label className="xh-label block mb-2">Fitness Goal</label>
+            <select value={goal} onChange={e => setGoal(e.target.value)} className="xh-select">
+              <option>Lose Weight</option>
+              <option>Maintain Weight</option>
+              <option>Gain Muscle</option>
+            </select>
+          </div>
+          <button onClick={handleSave} className="xh-btn w-full justify-center py-3">Save Profile</button>
+        </div>
+
+        {/* Target display */}
+        <div className="xh-card p-7 flex flex-col gap-6 min-h-[420px]">
+          <div>
+            <h2 className="text-xl font-bold text-[#0E1929] mb-1">Calculated Target</h2>
+            <p className="text-sm text-[#5a6478]">Personalized daily calorie goal based on your metrics.</p>
           </div>
 
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="w-48 h-48 rounded-full border border-white/[0.04] bg-white/[0.01] flex flex-col items-center justify-center shadow-inner relative">
-              <div className="absolute inset-2 rounded-full border border-indigo-500/10 bg-indigo-500/[0.01]" />
-              <span className="text-5xl font-black text-white tracking-tight">{calculateTarget()}</span>
-              <span className="block text-[10px] uppercase font-bold text-indigo-400 tracking-wider mt-2">kcal / day</span>
-            </div>
+          <div className="xh-card-blue rounded-2xl p-8 text-center flex-1 flex flex-col items-center justify-center gap-2">
+            <TrendingUp className="w-8 h-8 text-[#12266e] mb-2" />
+            <p className="text-6xl font-bold text-[#12266e]">{target}</p>
+            <p className="xh-label">kcal / day</p>
           </div>
 
-          <div className="pt-4 border-t border-white/[0.04] text-center">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Calculated dynamically based on TDEE</span>
+          <div className="space-y-3 border-t border-[#f0f2f8] pt-5">
+            {[
+              { label: 'Protein Target', val: `${Math.round(weight * 2.2)}g` },
+              { label: 'Carbs Target',   val: `${Math.round((target * 0.4) / 4)}g` },
+              { label: 'Fats Target',    val: `${Math.round((target * 0.3) / 9)}g` },
+            ].map(({ label, val }) => (
+              <div key={label} className="flex justify-between">
+                <span className="text-sm text-[#5a6478] font-medium">{label}</span>
+                <span className="text-sm font-bold text-[#12266e]">{val}</span>
+              </div>
+            ))}
           </div>
+          <p className="xh-label text-center">Mifflin-St Jeor equation · TDEE adjusted</p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

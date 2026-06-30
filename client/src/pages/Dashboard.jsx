@@ -1,28 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Utensils, Target, Sparkles, UserCircle, Menu, X, BarChart2, Flame, Award, Lightbulb, Zap, ChevronLeft, ChevronRight, Bell, Search, Plus } from 'lucide-react';
+import { LayoutDashboard, Utensils, Target, UserCircle, BarChart2, Flame, Plus, Bell, ChevronDown, Sun, Moon, CheckCheck, Droplets, Zap, TrendingUp, AlertTriangle, Dumbbell } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import CalorixLogo from '@/components/CalorixLogo';
 import Overview from './dashboard/Overview';
 import Meals from './dashboard/Meals';
 import Goals from './dashboard/Goals';
 import Profile from './dashboard/Profile';
 import Analytics from './dashboard/Analytics';
+import Fitness from './dashboard/Fitness';
 import api from '@/lib/api';
 
 const NAV_ITEMS = [
-  { path: '',          label: 'Overview',   icon: <LayoutDashboard size={18} /> },
-  { path: 'meals',     label: 'Meals',      icon: <Utensils size={18} />        },
-  { path: 'goals',     label: 'Goals',      icon: <Target size={18} />          },
-  { path: 'analytics', label: 'Analytics',  icon: <BarChart2 size={18} />       },
-  { path: 'profile',   label: 'Profile',    icon: <UserCircle size={18} />      },
+  { path: '',          label: 'Overview',   icon: <LayoutDashboard size={16} /> },
+  { path: 'meals',     label: 'Meals',      icon: <Utensils size={16} />        },
+  { path: 'fitness',   label: 'Fitness',    icon: <Dumbbell size={16} />        },
+  { path: 'goals',     label: 'Goals',      icon: <Target size={16} />          },
+  { path: 'analytics', label: 'Analytics',  icon: <BarChart2 size={16} />       },
+  { path: 'profile',   label: 'Profile',    icon: <UserCircle size={16} />      },
 ];
 
 const BOTTOM_NAV = [
   { path: '',          label: 'Home',      icon: <LayoutDashboard size={20} /> },
   { path: 'meals',     label: 'Meals',     icon: <Utensils size={20} />        },
+  { path: 'fitness',   label: 'Fitness',   icon: <Dumbbell size={20} />        },
   { path: 'analytics', label: 'Stats',     icon: <BarChart2 size={20} />       },
   { path: 'profile',   label: 'Profile',   icon: <UserCircle size={20} />      },
 ];
@@ -33,12 +37,23 @@ export default function Dashboard() {
   const { user, isLoaded } = useUser();
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  // Real-time metrics simulation
-  const [streak, setStreak] = useState(3); 
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [readNotifs, setReadNotifs] = useState(() => JSON.parse(localStorage.getItem('calorix_read_notifs') || '[]'));
+  const [streak, setStreak] = useState(3);
   const [consumedToday, setConsumedToday] = useState(0);
+  const [theme, setTheme] = useState(() => localStorage.getItem('calorix_theme') || 'light');
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('calorix_theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const refreshProfile = useCallback(async () => {
     if (!isLoaded || !user) return;
@@ -67,323 +82,300 @@ export default function Dashboard() {
 
   useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
-  // Fetch quick metrics for sidebar
   useEffect(() => {
     if (user) {
       api.getMeals(user.id).then(res => {
-        if(res.success && res.data) {
+        if (res.success && res.data) {
           const today = new Date().toISOString().split('T')[0];
           const todayMeals = res.data.filter(m => m.created_at?.startsWith(today));
           setConsumedToday(todayMeals.reduce((acc, curr) => acc + (curr.calories || 0), 0));
-          setStreak(res.data.length > 0 ? 5 : 0); // Simplified for this demo
+          setStreak(res.data.length > 0 ? 5 : 0);
         }
       });
     }
-  }, [user, location.pathname]); // Refresh when navigating
+  }, [user, location.pathname]);
 
-  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+  const goal = profile?.calorie_target || 2000;
+  const pct = Math.min((consumedToday / Math.max(goal, 1)) * 100, 100);
 
+  // ── NOTIFICATIONS (must be before any early returns — Rules of Hooks) ─
+  const notifications = useMemo(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const items = [];
+
+    // Calorie status
+    if (pct >= 100) {
+      items.push({ id: 'cal-over', icon: <AlertTriangle className="w-4 h-4" />, color: 'text-red-500', bg: 'bg-red-50', title: 'Calorie limit reached!', body: `You've hit your ${goal} kcal goal for today. Great discipline!`, time: 'Now' });
+    } else if (pct >= 80) {
+      items.push({ id: 'cal-near', icon: <Flame className="w-4 h-4" />, color: 'text-orange-500', bg: 'bg-orange-50', title: 'Almost at your calorie goal', body: `${Math.round(goal - consumedToday)} kcal remaining for today.`, time: 'Now' });
+    } else if (consumedToday === 0 && hour >= 10) {
+      items.push({ id: 'cal-none', icon: <Zap className="w-4 h-4" />, color: 'text-[#3456c8]', bg: 'bg-[#e8effe]', title: 'No meals logged yet today', body: 'Start tracking your breakfast to hit your nutrition goal.', time: 'Today' });
+    }
+
+    // Hydration reminder
+    if (hour >= 12) {
+      items.push({ id: 'hydration', icon: <Droplets className="w-4 h-4" />, color: 'text-blue-500', bg: 'bg-blue-50', title: 'Stay hydrated!', body: `Your daily water target is ${((profile?.hydration_target || 2500) / 1000).toFixed(1)}L. Keep sipping!`, time: `${hour}:00` });
+    }
+
+    // Protein tip
+    if (profile?.protein_target) {
+      items.push({ id: 'protein', icon: <TrendingUp className="w-4 h-4" />, color: 'text-green-600', bg: 'bg-green-50', title: 'Protein tip', body: `Your daily protein target is ${profile.protein_target}g. Add paneer or eggs to your next meal.`, time: 'Daily' });
+    }
+
+    // Streak
+    if (streak > 0) {
+      items.push({ id: 'streak', icon: <Flame className="w-4 h-4" />, color: 'text-amber-500', bg: 'bg-amber-50', title: `${streak}-day logging streak! 🔥`, body: 'Keep it up! Consistent tracking leads to better results.', time: `${streak}d` });
+    }
+
+    return items;
+  }, [pct, goal, consumedToday, profile, streak]);
+
+  const unreadCount = notifications.filter(n => !readNotifs.includes(n.id)).length;
+
+  const markAllRead = () => {
+    const ids = notifications.map(n => n.id);
+    setReadNotifs(ids);
+    localStorage.setItem('calorix_read_notifs', JSON.stringify(ids));
+  };
+
+  // ── EARLY RETURNS (after all hooks) ──────────────────────────
   if (!isLoaded || loadingProfile) {
     return (
-      <div className="min-h-screen bg-[#090B14] flex">
-        <aside className="w-[280px] border-r border-white/5 bg-[#111827]/60 backdrop-blur-xl p-6 hidden md:flex flex-col">
-          <Skeleton className="h-8 w-32 mb-10 bg-white/5" />
-          <div className="space-y-2">
-            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl bg-white/5" />)}
+      <div className="min-h-screen bg-[#f4f6fa] flex flex-col">
+        <div className="bg-white border-b border-[#edf0f7] px-8 py-4 flex items-center gap-4">
+          <Skeleton className="h-7 w-32 bg-[#edf0f7] rounded-full" />
+          <Skeleton className="h-8 w-64 bg-[#edf0f7] rounded-full ml-8" />
+        </div>
+        <div className="flex-1 p-8 space-y-4">
+          <Skeleton className="h-40 w-full bg-[#edf0f7] rounded-[20px]" />
+          <div className="grid grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-28 bg-[#edf0f7] rounded-[20px]" />)}
           </div>
-        </aside>
-        <main className="flex-1 p-10 bg-[#090B14]"><Skeleton className="h-full rounded-3xl bg-white/5" /></main>
+        </div>
       </div>
     );
   }
 
   if (!profile) return null;
 
-  const goal = profile?.calorie_target || 2000;
-  const pct = Math.min((consumedToday / Math.max(goal, 1)) * 100, 100);
-
-  const SidebarContent = ({ collapsed = false }) => (
-    <div className="flex flex-col h-full select-none">
-      {/* Brand Logo Header */}
-      <div className={`flex items-center gap-3 mb-8 pl-2 transition-all duration-300 ${collapsed ? 'justify-center pl-0' : ''}`}>
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-transform duration-300 hover:scale-105">
-          <Flame className="w-5 h-5 text-white" />
-        </div>
-        {!collapsed && (
-          <span className="text-xl font-black tracking-tight text-white bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-            Calorix
-          </span>
-        )}
-      </div>
-
-      {/* Mini Product Status Widget */}
-      {!collapsed && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 px-4 py-4 rounded-2xl bg-white/[0.02] border border-white/5 shadow-inner relative overflow-hidden group cursor-pointer hover:border-white/10 transition-colors" 
-          onClick={() => navigate('/dashboard')}
-        >
-          <div className="absolute -right-4 -top-4 w-16 h-16 bg-violet-600/10 rounded-full blur-xl group-hover:bg-violet-600/20 transition-colors" />
-          <div className="flex items-center justify-between mb-3 relative z-10">
-            <div className="flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-violet-400" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Today</span>
-            </div>
-            <span className="text-xs font-black text-white">{consumedToday} <span className="text-slate-500 font-semibold">/ {goal}</span></span>
-          </div>
-          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative z-10">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              className={`h-full rounded-full bg-gradient-to-r ${consumedToday > goal ? 'from-rose-500 to-red-400' : 'from-violet-500 to-indigo-500'}`} 
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Navigation Links */}
-      <nav className="flex-1 space-y-1 relative">
-        {NAV_ITEMS.map((item) => {
-          const href = `/dashboard${item.path ? `/${item.path}` : ''}`;
-          const isActive = location.pathname === href || (item.path === '' && location.pathname === '/dashboard');
-          
-          return (
-            <Link key={item.path} to={href} className="relative block group">
-              {isActive && (
-                <>
-                  {/* Glowing left bar */}
-                  <motion.div 
-                    layoutId="activeIndicator"
-                    className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-gradient-to-b from-violet-500 to-indigo-500 shadow-[0_0_10px_rgba(139,92,246,0.8)] z-20"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                  {/* Backdrop highlight */}
-                  <motion.div
-                    layoutId="activeNavBackground"
-                    className="absolute inset-0 bg-gradient-to-r from-violet-600/10 via-indigo-600/5 to-transparent border-l border-t border-b border-white/[0.04] rounded-xl backdrop-blur-md"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                </>
-              )}
-              <motion.div 
-                whileHover={{ x: collapsed ? 0 : 4 }}
-                className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-semibold z-10 ${
-                  isActive ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/[0.01]'
-                } ${collapsed ? 'justify-center px-0' : ''}`}
-              >
-                <div className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-violet-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]' : 'text-slate-400 group-hover:text-white'}`}>
-                  {item.icon}
-                </div>
-                {!collapsed && <span>{item.label}</span>}
-                {!collapsed && item.path === 'planner' && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
-                )}
-              </motion.div>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Gamification Stats */}
-      {!collapsed && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-6 space-y-2 py-4 border-t border-white/[0.04]"
-        >
-          <div className="flex items-center gap-3 px-3 py-1.5 text-xs text-slate-400 font-bold hover:text-white transition-colors">
-            <Award className="w-4 h-4 text-orange-400" />
-            <span>{streak} Day Streak</span>
-          </div>
-          <div className="flex items-center gap-3 px-3 py-1.5 text-xs text-slate-400 font-bold hover:text-white transition-colors">
-            <Lightbulb className="w-4 h-4 text-violet-400" />
-            <span>AI Assistant Active</span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* User Button Info Card */}
-      <div
-        className={`mt-auto relative flex items-center transition-all duration-300 ${
-          collapsed 
-            ? 'flex-col gap-2 p-1 bg-transparent border-none' 
-            : 'gap-3 p-3 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-md shadow-lg hover:bg-white/[0.04] hover:border-white/10 group cursor-pointer'
-        }`}
-        onClick={() => !collapsed && navigate('/dashboard/profile')}
-      >
-        <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-violet-500 via-indigo-500 to-cyan-500 shadow-md transition-transform duration-300 group-hover:scale-105">
-          <div className="bg-slate-950 p-[2px] rounded-full flex items-center justify-center">
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-9 h-9 shadow-sm' } }} />
-          </div>
-        </div>
-        {!collapsed && (
-          <div className="overflow-hidden flex-1 select-none">
-            <p className="text-sm font-bold truncate text-white group-hover:text-violet-400 transition-colors">
-              {user?.fullName || 'User'}
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <p className="text-[10px] uppercase tracking-wider text-slate-500 truncate font-black">
-                {profile.goal_type || 'Active'}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-[#090B14] flex flex-col selection:bg-indigo-500/30">
-      {/* Top Navigation Header */}
-      <header className="w-full sticky top-0 z-20 border-b border-white/[0.05] bg-[#090B14]/80 backdrop-blur-md px-8 py-4 flex items-center justify-between select-none">
-        {/* Left Brand Area */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-[0_4px_12px_rgba(99,102,241,0.3)] transition-all duration-300 hover:scale-105">
-              <Flame className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-black tracking-tight text-white">
-              Calorix
-            </span>
-          </div>
+    <div className="min-h-screen bg-[#f4f6fa] flex flex-col" style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
 
-          {/* Search bar inside header */}
-          <div className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.05] hover:border-white/10 transition-colors w-48 xl:w-64">
-            <Search className="w-3.5 h-3.5 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search or command..." 
-              className="bg-transparent border-none text-[11px] text-white placeholder-slate-500 focus:outline-none w-full"
-              readOnly
-              onClick={() => navigate('/dashboard/meals')}
-            />
-          </div>
+      {/* ── TOP HEADER ── */}
+      <header className="sticky top-0 z-20 bg-white border-b border-[#edf0f7] shadow-sm px-6 lg:px-10 py-3 flex items-center gap-4">
+
+        {/* Brand — new logo */}
+        <div className="cursor-pointer mr-2 flex-shrink-0" onClick={() => navigate('/dashboard')}>
+          <CalorixLogo size={34} textClass="text-base text-[#12266e]" />
         </div>
 
-        {/* Center Horizontal Menu */}
-        <nav className="hidden md:flex items-center gap-1.5 relative">
+        {/* Nav Pills */}
+        <nav className="hidden md:flex items-center gap-1 bg-[#f4f6fa] rounded-full px-2 py-1.5 border border-[#edf0f7]">
           {NAV_ITEMS.map((item) => {
             const href = `/dashboard${item.path ? `/${item.path}` : ''}`;
             const isActive = location.pathname === href || (item.path === '' && location.pathname === '/dashboard');
-            
             return (
-              <Link key={item.path} to={href} className="relative block group">
-                {isActive && (
-                  <motion.div
-                    layoutId="activeNavBackground"
-                    className="absolute inset-0 bg-white/[0.03] border border-white/[0.04] rounded-xl"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <div className={`relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-300 text-xs font-semibold ${
-                  isActive ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/[0.01]'
-                }`}>
-                  <div className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]' : 'text-slate-400 group-hover:text-white'}`}>
-                    {item.icon}
-                  </div>
-                  <span>{item.label}</span>
-                </div>
+              <Link
+                key={item.path}
+                to={href}
+                className={`xh-nav-item text-xs ${isActive ? 'active' : ''}`}
+              >
+                {item.icon}
+                {item.label}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right Side Control Bar */}
-        <div className="flex items-center gap-4">
-          {/* Mini Hydration/Calorie overview widget */}
-          <div className="hidden md:flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/[0.01] border border-white/5">
-            <Zap className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Today</span>
-            <span className="text-xs font-black text-white">{consumedToday} <span className="text-slate-500 font-semibold">/ {goal}</span></span>
-            <div className="h-1.5 w-24 bg-white/5 rounded-full overflow-hidden">
-              <motion.div 
+        {/* Right Controls */}
+        <div className="flex items-center gap-3 ml-auto">
+
+          {/* Calorie widget */}
+          <div className="hidden md:flex items-center gap-3 bg-[#f4f6fa] border border-[#edf0f7] rounded-full px-4 py-2">
+            <Flame className="w-4 h-4 text-[#12266e]" />
+            <div>
+              <p className="text-xs font-semibold text-[#0E1929]">
+                {consumedToday} <span className="text-[#9aa0b0] font-normal">/ {goal} kcal</span>
+              </p>
+            </div>
+            <div className="w-20 h-1.5 bg-[#edf0f7] rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: consumedToday > goal ? '#ef4444' : 'linear-gradient(90deg, #3456c8, #12266e)' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
-                className={`h-full rounded-full bg-gradient-to-r ${consumedToday > goal ? 'from-rose-500 to-red-400' : 'from-indigo-500 to-violet-600'}`} 
+                transition={{ duration: 1, ease: 'easeOut' }}
               />
             </div>
           </div>
 
-          {/* Quick Add Meal Button */}
-          <button 
+          {/* Add Meal */}
+          <button
             onClick={() => navigate('/dashboard/meals')}
-            className="hidden sm:flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full transition-all duration-300 shadow-[0_4px_12px_rgba(99,102,241,0.2)] hover:scale-102 hover:shadow-[0_4px_20px_rgba(99,102,241,0.4)] cursor-pointer"
+            className="xh-btn text-sm py-2 px-4 hidden sm:flex"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Meal</span>
+            <Plus className="w-4 h-4" /> Add Meal
           </button>
 
-          {/* Notifications button */}
-          <button className="relative p-2 text-slate-400 hover:text-white transition-colors cursor-pointer bg-white/[0.02] border border-white/5 rounded-full">
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+          {/* Theme Switcher */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 rounded-full bg-[#f4f6fa] border border-[#edf0f7] flex items-center justify-center text-[#5a6478] hover:bg-[#e8effe] hover:text-[#12266e] transition-colors cursor-pointer"
+            title="Toggle Theme"
+          >
+            {theme === 'light' ? <Moon className="w-4 h-4 text-[#12266e]" /> : <Sun className="w-4 h-4 text-[#fbbf24]" />}
           </button>
 
-          {/* User Button */}
-          <div className="flex items-center gap-2 pl-1 border-l border-white/5">
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-7.5 h-7.5 shadow-md border border-white/10 hover:scale-105 transition-all' } }} />
-          </div>
-
-          {/* 3-Dots Docker Trigger Button */}
+          {/* Notifications */}
           <div className="relative">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center cursor-pointer"
+            <button
+              onClick={() => { setNotifOpen(o => !o); setQuickMenuOpen(false); }}
+              className="w-9 h-9 rounded-full bg-[#f4f6fa] border border-[#edf0f7] flex items-center justify-center relative text-[#5a6478] hover:bg-[#e8effe] hover:text-[#12266e] transition-colors cursor-pointer"
+              title="Notifications"
             >
-              <div className="flex flex-col gap-1 w-4 items-center py-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-              </div>
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-[#3456c8] text-white text-[9px] font-bold flex items-center justify-center px-0.5">
+                  {unreadCount}
+                </span>
+              )}
             </button>
 
-            {/* Docker Dropdown Menu */}
             <AnimatePresence>
-              {sidebarOpen && (
+              {notifOpen && (
                 <>
-                  <div className="fixed inset-0 z-30" onClick={() => setSidebarOpen(false)} />
+                  <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
                   <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/[0.08] bg-[#0b0e14]/95 backdrop-blur-xl p-4 shadow-2xl z-40 space-y-4"
+                    className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-1.5rem))] bg-white rounded-2xl border border-[#edf0f7] shadow-2xl z-40 overflow-hidden"
                   >
-                    <div className="pb-3 border-b border-white/5">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Goals</p>
-                      <p className="text-sm font-black text-white mt-1">{profile?.goal_type || 'Active Target'}</p>
+                    {/* Panel header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-[#edf0f7] bg-[#f4f6fa]">
+                      <div>
+                        <p className="text-sm font-bold text-[#0E1929]">Notifications</p>
+                        <p className="text-xs text-[#9aa0b0]">{unreadCount} unread</p>
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllRead}
+                          className="flex items-center gap-1 text-xs font-semibold text-[#3456c8] hover:text-[#12266e] transition-colors"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                        </button>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-                        <span>Calorie Target</span>
-                        <span className="text-white">{profile?.calorie_target || 2000} kcal</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-                        <span>Protein Target</span>
-                        <span className="text-white">{profile?.protein_target || 150}g</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-                        <span>Water Target</span>
-                        <span className="text-white">{(profile?.hydration_target || 2500) / 1000}L</span>
-                      </div>
+
+                    {/* Notification list */}
+                    <div className="max-h-80 overflow-y-auto divide-y divide-[#f0f2f8]">
+                      {notifications.length === 0 ? (
+                        <div className="py-10 text-center text-sm text-[#9aa0b0]">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          No notifications yet
+                        </div>
+                      ) : (
+                        notifications.map(n => {
+                          const isRead = readNotifs.includes(n.id);
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                const updated = [...new Set([...readNotifs, n.id])];
+                                setReadNotifs(updated);
+                                localStorage.setItem('calorix_read_notifs', JSON.stringify(updated));
+                              }}
+                              className={`flex gap-3 px-5 py-4 cursor-pointer transition-colors hover:bg-[#f8f9ff] ${isRead ? 'opacity-60' : ''}`}
+                            >
+                              <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${n.bg} ${n.color}`}>
+                                {n.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className={`text-xs font-semibold text-[#0E1929] leading-snug ${!isRead ? 'font-bold' : ''}`}>{n.title}</p>
+                                  <span className="text-[10px] text-[#9aa0b0] whitespace-nowrap flex-shrink-0">{n.time}</span>
+                                </div>
+                                <p className="text-xs text-[#5a6478] mt-0.5 leading-relaxed">{n.body}</p>
+                              </div>
+                              {!isRead && <div className="w-2 h-2 rounded-full bg-[#3456c8] flex-shrink-0 mt-1.5" />}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-5 py-3 border-t border-[#edf0f7] bg-[#f4f6fa]">
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setNotifOpen(false)}
+                        className="text-xs font-semibold text-[#3456c8] hover:text-[#12266e] transition-colors"
+                      >
+                        View Dashboard →
+                      </Link>
                     </div>
                   </motion.div>
                 </>
               )}
             </AnimatePresence>
           </div>
+
+          {/* Quick stats dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setQuickMenuOpen(!quickMenuOpen)}
+              className="w-9 h-9 rounded-full bg-[#f4f6fa] border border-[#edf0f7] flex items-center justify-center text-[#5a6478] hover:bg-[#e8effe] hover:text-[#12266e] transition-colors cursor-pointer"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            <AnimatePresence>
+              {quickMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setQuickMenuOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl border border-[#edf0f7] shadow-xl z-40 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-[#edf0f7] bg-[#f4f6fa]">
+                      <p className="xh-label mb-1">Active Goals</p>
+                      <p className="text-sm font-bold text-[#0E1929]">{profile?.goal_type || 'Active Target'}</p>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {[
+                        ['Calorie Target', `${profile?.calorie_target || 2000} kcal`],
+                        ['Protein Target', `${profile?.protein_target || 150}g`],
+                        ['Water Target',   `${(profile?.hydration_target || 2500) / 1000}L`],
+                      ].map(([k, v]) => (
+                        <div key={k} className="flex items-center justify-between">
+                          <span className="text-sm text-[#5a6478] font-medium">{k}</span>
+                          <span className="text-sm font-bold text-[#12266e]">{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* User */}
+          <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-8 h-8 shadow-sm' } }} />
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-8 lg:p-12 overflow-y-auto min-h-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/5 via-[#090B14] to-[#090B14]">
+      {/* ── MAIN CONTENT ── */}
+      <main className="flex-1 p-4 pb-20 md:p-6 lg:p-8 min-h-0">
         <ErrorBoundary>
           <Routes>
             <Route path=""          element={<Overview   profile={profile} user={user} />} />
             <Route path="meals"     element={<Meals      profile={profile} user={user} />} />
+            <Route path="fitness"   element={<Fitness    profile={profile} user={user} />} />
             <Route path="goals"     element={<Goals      profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
             <Route path="analytics" element={<Analytics  profile={profile} user={user} />} />
             <Route path="profile"   element={<Profile    profile={profile} user={user} onProfileUpdate={refreshProfile} />} />
@@ -391,9 +383,9 @@ export default function Dashboard() {
         </ErrorBoundary>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#090B14]/85 backdrop-blur-xl border-t border-white/[0.05] px-2 py-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center justify-around">
+      {/* ── MOBILE BOTTOM NAV ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#edf0f7] shadow-lg pb-safe">
+        <div className="flex items-center px-2 py-2">
           {BOTTOM_NAV.map((item) => {
             const href = `/dashboard${item.path ? `/${item.path}` : ''}`;
             const isActive = location.pathname === href || (item.path === '' && location.pathname === '/dashboard');
@@ -401,23 +393,13 @@ export default function Dashboard() {
               <Link
                 key={item.path}
                 to={href}
-                className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-300 min-w-0 flex-1 ${
-                  isActive ? 'text-indigo-400' : 'text-slate-400 hover:text-white'
+                className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-2xl text-[9px] font-semibold transition-all ${
+                  isActive ? 'text-[#12266e] bg-[#e8effe]' : 'text-[#9aa0b0] hover:text-[#12266e]'
                 }`}
+                style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="bottomNavActive"
-                    className="absolute inset-0 bg-indigo-500/10 border border-indigo-500/10 rounded-2xl -z-10"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <div className={`transition-all duration-300 ${isActive ? 'scale-110 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : ''}`}>
-                  {item.icon}
-                </div>
-                <span className={`text-[9px] font-bold uppercase tracking-wider truncate ${isActive ? 'text-indigo-400' : ''}`}>
-                  {item.label}
-                </span>
+                <span className={isActive ? 'text-[#12266e]' : 'text-[#c8d0e0]'}>{item.icon}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}

@@ -4,3 +4,12 @@ node_modules/
 dist/
 build/
 .DS_Store
+
+# SQLite database files (local only - never commit)
+server/*.db
+server/*.db-shm
+server/*.db-wal
+
+# Large dataset files (reimport locally)
+server/*.tsv
+server/*.csv

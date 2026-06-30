@@ -24,9 +24,14 @@ const api = {
   getAIDiet: (profile) => request('/api/ai-diet', { method: 'POST', body: JSON.stringify({ profile }) }),
   getAIInsight: (payload) => request('/api/ai-insight', { method: 'POST', body: JSON.stringify(payload) }),
   aiChat: (payload) => request('/api/ai-chat', { method: 'POST', body: JSON.stringify(payload) }),
+  aiSearch: (query, mealType) => request('/api/ai-search', { method: 'POST', body: JSON.stringify({ query, meal_type: mealType }) }),
+  foodSearch: (query, mealType) => request(`/api/food-search?q=${encodeURIComponent(query)}&meal_type=${encodeURIComponent(mealType || 'Lunch')}`),
   getWater: (userId, date) => request(`/api/water/${userId}?date=${date}`),
   upsertWater: (userId, date, amount_ml) =>
     request('/api/water', { method: 'PUT', body: JSON.stringify({ user_id: userId, date, amount_ml }) }),
+  getWorkouts: (userId) => request(`/api/workouts/${userId}`),
+  addWorkout: (workout) => request('/api/workouts', { method: 'POST', body: JSON.stringify(workout) }),
+  deleteWorkout: (id) => request(`/api/workouts/${id}`, { method: 'DELETE' }),
 };
 
 export default api;

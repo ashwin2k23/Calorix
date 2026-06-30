@@ -4,7 +4,35 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
+    <title>Calorix — Smart Nutrition Tracker</title>
+    <meta name="description" content="Calorix is a smart, minimalist nutrition tracker for tracking macros, calories, and hydration." />
+
+    <!-- Security: prevent MIME-type sniffing -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <!-- Security: restrict referrer info -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Security: Content Security Policy (dev-friendly, tighten for production) -->
+    <meta http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://clerk.calorix.app https://*.clerk.accounts.dev;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data: https: blob:;
+        connect-src 'self' http://localhost:5000 https://*.clerk.accounts.dev https://api.clerk.dev wss:;
+        frame-src https://*.clerk.accounts.dev;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+      " />
+    <script>
+      const theme = localStorage.getItem('calorix_theme');
+      if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

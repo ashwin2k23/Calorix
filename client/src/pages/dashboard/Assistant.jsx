@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, Send, Loader2, RefreshCw, MessageSquare, User, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { sanitizeText } from '@/lib/sanitize';
+
+const MAX_MSG_LENGTH = 1000;
 
 const SUGGESTED_PROMPTS = [
   { icon: '🥘', text: 'Can I eat dosa during weight loss?' },
@@ -23,10 +26,21 @@ const RECOVERY_PROMPTS = [
   'Create a fat loss meal plan',
 ];
 
-// Simple markdown renderer (bold, italic, bullets)
+// Escape HTML chars before rendering markdown to prevent XSS
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Simple markdown renderer (bold, italic, bullets) — escapes HTML first
 function renderMarkdown(text) {
   if (!text) return '';
-  return text
+  const escaped = escapeHtml(text);
+  return escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/^• (.+)/gm, '<li class="ml-4 list-disc">$1</li>')
@@ -163,8 +177,12 @@ export default function Assistant({ profile }) {
   }, [messages]);
 
   const sendMessage = useCallback(async (text) => {
-    const userText = (text || input).trim();
+    const raw = (text || input).trim();
+    const userText = sanitizeText(raw, MAX_MSG_LENGTH);
     if (!userText || loading) return;
+    if (raw.length > MAX_MSG_LENGTH) {
+      toast.warning(`Message trimmed to ${MAX_MSG_LENGTH} characters.`);
+    }
     setInput('');
 
     const userMsg = {
@@ -300,6 +318,7 @@ export default function Assistant({ profile }) {
             <textarea
               ref={inputRef}
               value={input}
+              maxLength={MAX_MSG_LENGTH}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about nutrition, meals, macros..."
