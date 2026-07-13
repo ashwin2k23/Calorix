@@ -79,11 +79,11 @@ export default function Landing() {
             </Link>
           </SignedIn>
           <SignedOut>
-            <button onClick={() => openSignIn()}
+            <button onClick={() => openSignIn({ forceRedirectUrl: '/#/dashboard' })}
               className="xh-btn-ghost text-sm font-medium text-[#5a6478] hover:text-[#12266e]">
               Log in
             </button>
-            <button onClick={() => openSignUp()} className="xh-btn">
+            <button onClick={() => openSignUp({ forceRedirectUrl: '/#/onboarding' })} className="xh-btn">
               Join Now!
             </button>
           </SignedOut>
@@ -125,10 +125,10 @@ export default function Landing() {
                 </Link>
               ) : (
                 <div className="flex items-center gap-4">
-                  <button onClick={() => openSignUp()} className="xh-btn py-3.5 px-8 text-base shadow-lg">
+                  <button onClick={() => openSignUp({ forceRedirectUrl: '/#/onboarding' })} className="xh-btn py-3.5 px-8 text-base shadow-lg">
                     Get Started Free
                   </button>
-                  <button onClick={() => openSignIn()} className="text-sm font-semibold text-[#5a6478] hover:text-[#12266e] transition-colors">
+                  <button onClick={() => openSignIn({ forceRedirectUrl: '/#/dashboard' })} className="text-sm font-semibold text-[#5a6478] hover:text-[#12266e] transition-colors">
                     Sign In
                   </button>
                 </div>
@@ -266,7 +266,7 @@ export default function Landing() {
               ))}
             </ul>
             <SignedOut>
-              <button onClick={() => openSignUp()}
+              <button onClick={() => openSignUp({ forceRedirectUrl: '/#/onboarding' })}
                 className="mt-2 bg-white text-[#12266e] rounded-full font-bold px-7 py-3.5 text-sm hover:bg-[#f0f5ff] transition-colors inline-flex items-center gap-2 shadow-lg">
                 Start Tracking Free <ArrowRight className="w-4 h-4" />
               </button>
@@ -321,7 +321,7 @@ export default function Landing() {
             Join thousands tracking Indian cuisine with precision. No complex setups, just accurate data.
           </p>
           <SignedOut>
-            <button onClick={() => openSignUp()} className="xh-btn text-base px-8 py-4">
+            <button onClick={() => openSignUp({ forceRedirectUrl: '/#/onboarding' })} className="xh-btn text-base px-8 py-4">
               Create Free Account <ChevronRight className="w-5 h-5" />
             </button>
           </SignedOut>
