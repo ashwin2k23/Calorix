@@ -218,11 +218,58 @@ const db = {
       await pool.query(mealSchema);
       await pool.query(waterSchema);
       await pool.query(workoutSchema);
+
+      // Alter tables to add columns that might be missing from older deployments
+      const userColumns = [
+        ['age', 'INTEGER'],
+        ['gender', 'TEXT'],
+        ['height', 'REAL'],
+        ['weight', 'REAL'],
+        ['activity_level', 'TEXT'],
+        ['goal_type', 'TEXT'],
+        ['diet_preference', 'TEXT'],
+        ['calorie_target', 'INTEGER'],
+        ['protein_target', 'INTEGER'],
+        ['carbs_target', 'INTEGER'],
+        ['fats_target', 'INTEGER'],
+        ['hydration_target', 'INTEGER'],
+        ['onboarding_completed', 'BOOLEAN DEFAULT FALSE']
+      ];
+      for (const [colName, colType] of userColumns) {
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${colName} ${colType}`);
+      }
+      await pool.query(`ALTER TABLE meals ADD COLUMN IF NOT EXISTS meal_type TEXT`);
     } else {
       await sqliteDb.exec(userSchema);
       await sqliteDb.exec(mealSchema);
       await sqliteDb.exec(waterSchema);
       await sqliteDb.exec(workoutSchema);
+
+      // Alter tables for SQLite (catching errors for columns that already exist)
+      const userColumns = [
+        ['age', 'INTEGER'],
+        ['gender', 'TEXT'],
+        ['height', 'REAL'],
+        ['weight', 'REAL'],
+        ['activity_level', 'TEXT'],
+        ['goal_type', 'TEXT'],
+        ['diet_preference', 'TEXT'],
+        ['calorie_target', 'INTEGER'],
+        ['protein_target', 'INTEGER'],
+        ['carbs_target', 'INTEGER'],
+        ['fats_target', 'INTEGER'],
+        ['hydration_target', 'INTEGER'],
+        ['onboarding_completed', 'BOOLEAN DEFAULT FALSE']
+      ];
+      for (const [colName, colType] of userColumns) {
+        try {
+          await sqliteDb.exec(`ALTER TABLE users ADD COLUMN ${colName} ${colType}`);
+        } catch (_) {}
+      }
+      try {
+        await sqliteDb.exec(`ALTER TABLE meals ADD COLUMN meal_type TEXT`);
+      } catch (_) {}
+
       await sqliteDb.exec(`
         CREATE TABLE IF NOT EXISTS global_foods (
           id          INTEGER PRIMARY KEY AUTOINCREMENT,
