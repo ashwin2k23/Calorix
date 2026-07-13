@@ -253,8 +253,28 @@ let genAI;
 if (process.env.GEMINI_API_KEY) genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ── HEALTH CHECK ──────────────────────────────────────────────
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', database: dbMode });
+app.get('/api/health', async (_req, res) => {
+  let dbStatus = 'unknown';
+  let dbError = null;
+  try {
+    const result = await db.query(dbMode === 'postgres' ? 'SELECT NOW()' : 'SELECT 1');
+    if (result) {
+      dbStatus = 'connected';
+    }
+  } catch (err) {
+    dbStatus = 'error';
+    dbError = err.message;
+  }
+  res.json({ 
+    status: 'ok', 
+    database: dbMode, 
+    dbStatus, 
+    dbError,
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      HAS_DB_URL: !!process.env.DATABASE_URL
+    }
+  });
 });
 
 // ── USERS ─────────────────────────────────────────────────────
