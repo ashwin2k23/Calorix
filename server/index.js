@@ -13,6 +13,7 @@ dotenv.config();
 
 const { Pool } = pkg;
 const app = express();
+app.set('trust proxy', 1);
 
 // ── SECURITY HEADERS ──────────────────────────────────────────
 app.use(helmet({
