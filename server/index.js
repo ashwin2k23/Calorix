@@ -477,6 +477,8 @@ app.delete('/api/meals/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to delete meal.' });
   }
+});
+
 // ── WORKOUTS ──────────────────────────────────────────────────
 app.get('/api/workouts/:user_id', async (req, res) => {
   const id = req.params.user_id;
