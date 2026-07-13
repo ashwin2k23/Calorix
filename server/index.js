@@ -2,8 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import pkg from 'pg';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import helmet from 'helmet';
@@ -167,7 +165,12 @@ const db = {
 
   if (dbMode === 'sqlite') {
     try {
-      sqliteDb = await open({ filename: path.join(process.cwd(), 'calorix.db'), driver: sqlite3.Database });
+      const sqlite3Module = await import('sqlite3');
+      const sqliteModule = await import('sqlite');
+      sqliteDb = await sqliteModule.open({
+        filename: path.join(process.cwd(), 'calorix.db'),
+        driver: sqlite3Module.default.Database
+      });
       console.log('✅ Connected to SQLite database: calorix.db');
     } catch (err) {
       console.error('❌ Failed to open SQLite database:', err.message);
