@@ -118,6 +118,7 @@ const isValidClerkId = (id) =>
 let dbMode = 'sqlite';
 let sqliteDb;
 let pool;
+let pgInitError = null;
 
 const db = {
   query: async (text, params = []) => {
@@ -152,6 +153,7 @@ const db = {
       console.log('✅ Connected to PostgreSQL database!');
     } catch (err) {
       console.log('⚠️ PostgreSQL failed, falling back to SQLite:', err.message);
+      pgInitError = err.message;
     }
   }
 
@@ -309,6 +311,7 @@ app.get('/api/health', async (_req, res) => {
     database: dbMode, 
     dbStatus, 
     dbError,
+    pgInitError,
     env: {
       NODE_ENV: process.env.NODE_ENV,
       HAS_DB_URL: !!process.env.DATABASE_URL
