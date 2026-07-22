@@ -518,8 +518,8 @@ app.get('/api/food-search', async (req, res) => {
   const raw = sanitizeStr(req.query.q);
   const mealType = sanitizeStr(req.query.meal_type) || 'Lunch';
 
-  if (!raw || raw.length < 2) {
-    return res.status(400).json({ success: false, error: 'Query must be at least 2 characters.' });
+  if (!raw || raw.length < 1) {
+    return res.status(400).json({ success: false, error: 'Query is required.' });
   }
 
   const q = raw.toLowerCase().trim();
@@ -533,7 +533,7 @@ app.get('/api/food-search', async (req, res) => {
        ORDER BY
          CASE WHEN name_lower LIKE $2 THEN 0 ELSE 1 END,
          length(name)
-       LIMIT 8`,
+       LIMIT 25`,
       [`%${q}%`, `${q}%`]
     );
     if (rows && rows.length > 0) {

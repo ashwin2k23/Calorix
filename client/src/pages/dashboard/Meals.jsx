@@ -60,22 +60,53 @@ export default function Meals({ user }) {
       .finally(() => setLoading(false));
   }, [user]);
 
-  // Debounced food search (DB + local fallback)
+  // Instant & debounced food search (DB + 1,200+ local Indian foods dataset)
   const runSearch = useCallback(async (term, type) => {
-    if (!term || term.trim().length < 2) { setSearchResults([]); return; }
+    const q = term ? term.trim().toLowerCase() : '';
+    if (!q) { setSearchResults([]); return; }
+
     setSearchLoading(true);
+
+    // Client-side instant filter helper across 1,236 Indian foods
+    const searchLocalDataset = () => {
+      const matched = indianFoods.filter(f => f.name.toLowerCase().includes(q));
+      matched.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aStarts = aName.startsWith(q);
+        const bStarts = bName.startsWith(q);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return aName.length - bName.length;
+      });
+      return matched.slice(0, 30).map(f => ({
+        name: f.name,
+        servingSize: '1 serving',
+        cal: f.cal,
+        p: f.p,
+        c: f.c,
+        f: f.f,
+        category: type,
+        emoji: f.emoji || '🍛'
+      }));
+    };
+
     try {
-      const d = await api.foodSearch(term, type);
-      if (d.success) setSearchResults(d.results || []);
+      const d = await api.foodSearch(q, type);
+      if (d && d.success && d.results && d.results.length > 0) {
+        setSearchResults(d.results);
+      } else {
+        setSearchResults(searchLocalDataset());
+      }
     } catch {
-      setSearchResults([]);
+      setSearchResults(searchLocalDataset());
     } finally {
       setSearchLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => runSearch(searchTerm, selectedType), 300);
+    const t = setTimeout(() => runSearch(searchTerm, selectedType), 150);
     return () => clearTimeout(t);
   }, [searchTerm, selectedType, runSearch]);
 
