@@ -67,12 +67,8 @@ export default function Meals({ user }) {
     try {
       const d = await api.foodSearch(term, type);
       if (d.success) setSearchResults(d.results || []);
-    } catch (err) {
-      // fallback to legacy endpoint if needed
-      try {
-        const d2 = await api.aiSearch(term, type);
-        if (d2.success) setSearchResults(d2.results || []);
-      } catch {}
+    } catch {
+      setSearchResults([]);
     } finally {
       setSearchLoading(false);
     }

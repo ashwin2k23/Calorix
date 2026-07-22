@@ -21,10 +21,7 @@ const api = {
   getMeals: (userId) => request(`/api/meals/${userId}`),
   addMeal: (meal) => request('/api/meals', { method: 'POST', body: JSON.stringify(meal) }),
   deleteMeal: (id) => request(`/api/meals/${id}`, { method: 'DELETE' }),
-  getAIDiet: (profile) => request('/api/ai-diet', { method: 'POST', body: JSON.stringify({ profile }) }),
-  getAIInsight: (payload) => request('/api/ai-insight', { method: 'POST', body: JSON.stringify(payload) }),
-  aiChat: (payload) => request('/api/ai-chat', { method: 'POST', body: JSON.stringify(payload) }),
-  aiSearch: (query, mealType) => request('/api/ai-search', { method: 'POST', body: JSON.stringify({ query, meal_type: mealType }) }),
+
   foodSearch: (query, mealType) => request(`/api/food-search?q=${encodeURIComponent(query)}&meal_type=${encodeURIComponent(mealType || 'Lunch')}`),
   getWater: (userId, date) => request(`/api/water/${userId}?date=${date}`),
   upsertWater: (userId, date, amount_ml) =>

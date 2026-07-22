@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pkg from 'pg';
 import path from 'path';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import xss from 'xss';
@@ -65,12 +64,6 @@ const generalLimiter = rateLimit({
   message: { success: false, error: 'Too many requests. Please slow down.' },
 });
 
-const aiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10,
-  message: { success: false, error: 'AI rate limit reached. Please wait a minute.' },
-});
-
 const writeLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
@@ -78,9 +71,6 @@ const writeLimiter = rateLimit({
 });
 
 app.use('/api/', generalLimiter);
-app.use('/api/ai-diet', aiLimiter);
-app.use('/api/ai-insight', aiLimiter);
-app.use('/api/ai-chat', aiLimiter);
 app.use('/api/users', writeLimiter);
 app.use('/api/meals', writeLimiter);
 
@@ -300,9 +290,6 @@ const db = {
   }
 })();
 
-// ── GEMINI AI ─────────────────────────────────────────────────
-let genAI;
-if (process.env.GEMINI_API_KEY) genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ── HEALTH CHECK ──────────────────────────────────────────────
 app.get('/api/health', async (_req, res) => {
@@ -972,111 +959,7 @@ app.post('/api/ai-search', async (req, res) => {
   return res.json({ success: true, results });
 });
 
-// ── AI ROUTES ─────────────────────────────────────────────────
-const safeProfileForAI = (profile) => ({
-  weight:         sanitizeNum(profile?.weight) ?? 70,
-  height:         sanitizeNum(profile?.height) ?? 170,
-  age:            sanitizeInt(profile?.age) ?? 25,
-  gender:         allowedEnum(sanitizeStr(profile?.gender), 'gender'),
-  goal_type:      allowedEnum(sanitizeStr(profile?.goal_type), 'goal_type'),
-  calorie_target: sanitizeInt(profile?.calorie_target) ?? 2000,
-  protein_target: sanitizeInt(profile?.protein_target) ?? 120,
-  diet_preference:allowedEnum(sanitizeStr(profile?.diet_preference), 'diet_preference'),
-  activity_level: allowedEnum(sanitizeStr(profile?.activity_level), 'activity_level'),
-});
 
-app.post('/api/ai-diet', async (req, res) => {
-  const profile = safeProfileForAI(req.body.profile);
-
-  const fallbackPlan = {
-    breakfast: profile.diet_preference === 'Vegan'
-      ? 'Smoothie bowl with oats, banana, flaxseeds, and almond milk. (320 kcal)'
-      : profile.diet_preference === 'Vegetarian'
-        ? 'Poha with peanuts, curry leaves, and warm milk. (320 kcal)'
-        : 'Omelette (2 eggs) with whole wheat toast and a banana. (380 kcal)',
-    lunch: profile.diet_preference === 'Non-Vegetarian'
-      ? '2 Rotis, Chicken Curry, and Cucumber Raita. (520 kcal)'
-      : '2 Rotis, Chana Masala, and Cucumber Raita. (480 kcal)',
-    snack: 'Roasted Chana and green tea. (150 kcal)',
-    dinner: profile.diet_preference === 'Non-Vegetarian'
-      ? 'Grilled Chicken with Dal and Brown Rice. (450 kcal)'
-      : 'Moong Dal Khichdi with pickle and curd. (380 kcal)',
-    insight: `Your goal is to ${profile.goal_type}. Stay within your ${profile.calorie_target} kcal daily target.`
-  };
-
-  if (!genAI) return res.json({ success: true, plan: fallbackPlan });
-
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `You are a professional Indian nutritionist AI. Generate a personalized full-day Indian diet plan for:
-- Weight: ${profile.weight}kg, Height: ${profile.height}cm, Age: ${profile.age}, Gender: ${profile.gender}
-- Goal: ${profile.goal_type}, Calories: ${profile.calorie_target} kcal, Protein: ${profile.protein_target}g
-- Diet: ${profile.diet_preference}, Activity: ${profile.activity_level}
-Return ONLY valid JSON with keys: breakfast, lunch, snack, dinner, insight. No markdown.`;
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '').trim();
-    const plan = JSON.parse(text);
-    res.json({ success: true, plan });
-  } catch (error) {
-    console.error('Gemini Error:', error.message);
-    res.json({ success: true, plan: fallbackPlan });
-  }
-});
-
-app.post('/api/ai-insight', async (req, res) => {
-  const profile        = safeProfileForAI(req.body.profile);
-  const consumed       = Math.max(0, sanitizeInt(req.body.consumed) ?? 0);
-  const proteinConsumed= Math.max(0, sanitizeNum(req.body.proteinConsumed) ?? 0);
-
-  const proteinRemaining = profile.protein_target - proteinConsumed;
-  const fallbackInsight = consumed > 0
-    ? `You've consumed ${consumed} kcal today. You need ${proteinRemaining}g more protein.`
-    : `No meals logged yet. Start tracking to hit your ${profile.goal_type} goal!`;
-
-  if (!genAI) return res.json({ success: true, insight: fallbackInsight });
-
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `You are a smart Indian nutrition coach. Give ONE short tip (max 2 sentences) based on:
-Goal: ${profile.goal_type}, Calories: ${consumed}/${profile.calorie_target} kcal, Protein: ${proteinConsumed}g/${profile.protein_target}g, Diet: ${profile.diet_preference}.
-Be direct and mention a specific Indian food. Return plain text only.`;
-    const result = await model.generateContent(prompt);
-    res.json({ success: true, insight: result.response.text().trim() });
-  } catch (error) {
-    console.error('Gemini Insight Error:', error.message);
-    res.json({ success: true, insight: fallbackInsight });
-  }
-});
-
-app.post('/api/ai-chat', async (req, res) => {
-  const profile  = safeProfileForAI(req.body.profile);
-  const message  = sanitizeStr(req.body.message);
-  const history  = Array.isArray(req.body.history) ? req.body.history.slice(-20) : [];
-
-  if (!message || message.length < 1) {
-    return res.status(400).json({ success: false, error: 'Message is required.' });
-  }
-
-  const fallback = 'I am currently running in offline mode.';
-  if (!genAI) return res.json({ success: true, reply: fallback });
-
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const chat = model.startChat({
-      history: history.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: sanitizeStr(m.content) }]
-      })),
-      systemInstruction: { parts: [{ text: `You are an Indian nutrition expert. User goal: ${profile.goal_type}. Be concise and friendly.` }] }
-    });
-    const result = await chat.sendMessage([{ text: message }]);
-    res.json({ success: true, reply: result.response.text().trim() });
-  } catch (error) {
-    console.error('Gemini Chat Error:', error.message);
-    res.json({ success: true, reply: fallback });
-  }
-});
 
 // ── 404 & ERROR HANDLER ───────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ success: false, error: 'Route not found.' }));
