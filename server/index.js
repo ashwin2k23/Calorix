@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import pkg from 'pg';
 import path from 'path';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -10,7 +9,6 @@ import validator from 'validator';
 
 dotenv.config();
 
-const { Pool } = pkg;
 const app = express();
 app.set('trust proxy', 1);
 
@@ -115,64 +113,47 @@ const isValidClerkId = (id) =>
   typeof id === 'string' && /^user_[a-zA-Z0-9_]{10,50}$/.test(id);
 
 // ── DATABASE SETUP ────────────────────────────────────────────
-let dbMode = 'sqlite';
 let sqliteDb;
-let pool;
-let pgInitError = null;
+let sqliteInitError = null;
 
 const db = {
   query: async (text, params = []) => {
     const safeParams = params.map(p => (p === undefined ? null : p));
-    if (dbMode === 'postgres') {
-      return await pool.query(text, safeParams);
+    let sqliteText = text.replace(/\$\d+/g, '?');
+    const isSelect = sqliteText.trim().toUpperCase().startsWith('SELECT');
+    if (isSelect) {
+      const rows = await sqliteDb.all(sqliteText, safeParams);
+      return { rows };
     } else {
-      let sqliteText = text.replace(/\$\d+/g, '?');
-      const isSelect = sqliteText.trim().toUpperCase().startsWith('SELECT');
-      if (isSelect) {
-        const rows = await sqliteDb.all(sqliteText, safeParams);
-        return { rows };
-      } else {
-        const result = await sqliteDb.run(sqliteText, safeParams);
-        let rows = [];
-        if (sqliteText.toUpperCase().includes('RETURNING')) rows = [{ id: result.lastID }];
-        return { rows, lastID: result.lastID, changes: result.changes };
-      }
+      const result = await sqliteDb.run(sqliteText, safeParams);
+      let rows = [];
+      if (sqliteText.toUpperCase().includes('RETURNING')) rows = [{ id: result.lastID }];
+      return { rows, lastID: result.lastID, changes: result.changes };
     }
   }
 };
 
 (async () => {
-  if (process.env.DATABASE_URL) {
-    try {
-      pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-      });
-      await pool.query('SELECT NOW()');
-      dbMode = 'postgres';
-      console.log('✅ Connected to PostgreSQL database!');
-    } catch (err) {
-      console.log('⚠️ PostgreSQL failed, falling back to SQLite:', err.message);
-      pgInitError = err.message;
-    }
-  }
+  // Use /tmp in production (always writable on Render free tier)
+  const dbPath = process.env.SQLITE_PATH ||
+    (process.env.NODE_ENV === 'production' ? '/tmp/calorix.db' : path.join(process.cwd(), 'calorix.db'));
 
-  if (dbMode === 'sqlite') {
-    try {
-      const sqlite3Module = await import('sqlite3');
-      const sqliteModule = await import('sqlite');
-      sqliteDb = await sqliteModule.open({
-        filename: path.join(process.cwd(), 'calorix.db'),
-        driver: sqlite3Module.default.Database
-      });
-      console.log('✅ Connected to SQLite database: calorix.db');
-    } catch (err) {
-      console.error('❌ Failed to open SQLite database:', err.message);
-    }
+  try {
+    const sqlite3Module = await import('sqlite3');
+    const sqliteModule = await import('sqlite');
+    sqliteDb = await sqliteModule.open({
+      filename: dbPath,
+      driver: sqlite3Module.default.Database
+    });
+    console.log(`✅ Connected to SQLite database: ${dbPath}`);
+  } catch (err) {
+    sqliteInitError = err.message;
+    console.error('❌ Failed to open SQLite database:', err.message);
+    return;
   }
 
   try {
-    const userSchema = `
+    await sqliteDb.exec(`
       CREATE TABLE IF NOT EXISTS users (
         clerk_user_id TEXT PRIMARY KEY,
         name TEXT, email TEXT, age INTEGER, gender TEXT,
@@ -180,144 +161,88 @@ const db = {
         diet_preference TEXT, calorie_target INTEGER, protein_target INTEGER,
         carbs_target INTEGER, fats_target INTEGER, hydration_target INTEGER,
         onboarding_completed BOOLEAN DEFAULT FALSE,
-        created_at ${dbMode === 'postgres' ? 'TIMESTAMPTZ DEFAULT NOW()' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'}
-      )`;
-    const mealSchema = `
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+    await sqliteDb.exec(`
       CREATE TABLE IF NOT EXISTS meals (
-        id ${dbMode === 'postgres' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${dbMode === 'sqlite' ? 'AUTOINCREMENT' : ''},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, food_name TEXT, calories INTEGER, protein REAL,
         carbs REAL, fats REAL, meal_type TEXT,
-        created_at ${dbMode === 'postgres' ? 'TIMESTAMPTZ DEFAULT NOW()' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(clerk_user_id) ON DELETE CASCADE
-      )`;
-    const waterSchema = `
+      )`);
+    await sqliteDb.exec(`
       CREATE TABLE IF NOT EXISTS water_logs (
-        id ${dbMode === 'postgres' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${dbMode === 'sqlite' ? 'AUTOINCREMENT' : ''},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT REFERENCES users(clerk_user_id) ON DELETE CASCADE,
         date DATE NOT NULL DEFAULT CURRENT_DATE,
         amount_ml INTEGER DEFAULT 0,
         UNIQUE(user_id, date)
-      )`;
-
-    const workoutSchema = `
+      )`);
+    await sqliteDb.exec(`
       CREATE TABLE IF NOT EXISTS workouts (
-        id ${dbMode === 'postgres' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${dbMode === 'sqlite' ? 'AUTOINCREMENT' : ''},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT REFERENCES users(clerk_user_id) ON DELETE CASCADE,
         activity_name TEXT NOT NULL,
         duration_minutes INTEGER NOT NULL,
         calories_burned INTEGER NOT NULL,
         intensity TEXT,
-        created_at ${dbMode === 'postgres' ? 'TIMESTAMPTZ DEFAULT NOW()' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'}
-      )`;
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
 
-    if (dbMode === 'postgres') {
-      await pool.query(userSchema);
-      await pool.query(mealSchema);
-      await pool.query(waterSchema);
-      await pool.query(workoutSchema);
-
-      // Alter tables to add columns that might be missing from older deployments
-      const userColumns = [
-        ['age', 'INTEGER'],
-        ['gender', 'TEXT'],
-        ['height', 'REAL'],
-        ['weight', 'REAL'],
-        ['activity_level', 'TEXT'],
-        ['goal_type', 'TEXT'],
-        ['diet_preference', 'TEXT'],
-        ['calorie_target', 'INTEGER'],
-        ['protein_target', 'INTEGER'],
-        ['carbs_target', 'INTEGER'],
-        ['fats_target', 'INTEGER'],
-        ['hydration_target', 'INTEGER'],
-        ['onboarding_completed', 'BOOLEAN DEFAULT FALSE']
-      ];
-      for (const [colName, colType] of userColumns) {
-        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${colName} ${colType}`);
-      }
-      await pool.query(`ALTER TABLE meals ADD COLUMN IF NOT EXISTS meal_type TEXT`);
-    } else {
-      await sqliteDb.exec(userSchema);
-      await sqliteDb.exec(mealSchema);
-      await sqliteDb.exec(waterSchema);
-      await sqliteDb.exec(workoutSchema);
-
-      // Alter tables for SQLite (catching errors for columns that already exist)
-      const userColumns = [
-        ['age', 'INTEGER'],
-        ['gender', 'TEXT'],
-        ['height', 'REAL'],
-        ['weight', 'REAL'],
-        ['activity_level', 'TEXT'],
-        ['goal_type', 'TEXT'],
-        ['diet_preference', 'TEXT'],
-        ['calorie_target', 'INTEGER'],
-        ['protein_target', 'INTEGER'],
-        ['carbs_target', 'INTEGER'],
-        ['fats_target', 'INTEGER'],
-        ['hydration_target', 'INTEGER'],
-        ['onboarding_completed', 'BOOLEAN DEFAULT FALSE']
-      ];
-      for (const [colName, colType] of userColumns) {
-        try {
-          await sqliteDb.exec(`ALTER TABLE users ADD COLUMN ${colName} ${colType}`);
-        } catch (_) {}
-      }
-      try {
-        await sqliteDb.exec(`ALTER TABLE meals ADD COLUMN meal_type TEXT`);
-      } catch (_) {}
-
-      await sqliteDb.exec(`
-        CREATE TABLE IF NOT EXISTS global_foods (
-          id          INTEGER PRIMARY KEY AUTOINCREMENT,
-          name        TEXT    NOT NULL,
-          name_lower  TEXT    NOT NULL,
-          serving_size TEXT,
-          calories    REAL,
-          protein     REAL,
-          carbs       REAL,
-          fat         REAL,
-          category    TEXT,
-          emoji       TEXT,
-          created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(name_lower)
-        )
-      `);
-      await sqliteDb.exec('CREATE INDEX IF NOT EXISTS idx_gf_name ON global_foods(name_lower);');
+    // Add columns that might be missing from older deployments (errors ignored)
+    const userColumns = [
+      ['age', 'INTEGER'], ['gender', 'TEXT'], ['height', 'REAL'], ['weight', 'REAL'],
+      ['activity_level', 'TEXT'], ['goal_type', 'TEXT'], ['diet_preference', 'TEXT'],
+      ['calorie_target', 'INTEGER'], ['protein_target', 'INTEGER'],
+      ['carbs_target', 'INTEGER'], ['fats_target', 'INTEGER'],
+      ['hydration_target', 'INTEGER'], ['onboarding_completed', 'BOOLEAN DEFAULT FALSE']
+    ];
+    for (const [colName, colType] of userColumns) {
+      try { await sqliteDb.exec(`ALTER TABLE users ADD COLUMN ${colName} ${colType}`); } catch (_) {}
     }
+    try { await sqliteDb.exec('ALTER TABLE meals ADD COLUMN meal_type TEXT'); } catch (_) {}
+
+    await sqliteDb.exec(`
+      CREATE TABLE IF NOT EXISTS global_foods (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL,
+        name_lower  TEXT    NOT NULL,
+        serving_size TEXT,
+        calories    REAL, protein REAL, carbs REAL, fat REAL,
+        category    TEXT, emoji TEXT,
+        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(name_lower)
+      )`);
+    await sqliteDb.exec('CREATE INDEX IF NOT EXISTS idx_gf_name ON global_foods(name_lower);');
     console.log('✅ Database schemas verified.');
   } catch (err) {
     console.error('❌ Schema init error:', err.message);
   }
 })();
 
-
-// ── HEALTH CHECK ──────────────────────────────────────────────
+// ── HEALTH CHECK ────────────────────────────────────────────
 app.get('/api/health', async (_req, res) => {
   let dbStatus = 'unknown';
   let dbError = null;
   try {
-    const result = await db.query(dbMode === 'postgres' ? 'SELECT NOW()' : 'SELECT 1');
-    if (result) {
-      dbStatus = 'connected';
-    }
+    const result = await db.query('SELECT 1');
+    if (result) dbStatus = 'connected';
   } catch (err) {
     dbStatus = 'error';
     dbError = err.message;
   }
-  res.json({ 
-    status: 'ok', 
-    database: dbMode, 
-    dbStatus, 
+  res.json({
+    status: 'ok',
+    database: 'sqlite',
+    dbStatus,
     dbError,
-    pgInitError,
-    env: {
-      NODE_ENV: process.env.NODE_ENV,
-      HAS_DB_URL: !!process.env.DATABASE_URL
-    }
+    sqliteInitError,
+    env: { NODE_ENV: process.env.NODE_ENV }
   });
 });
+
 
 // ── USERS ─────────────────────────────────────────────────────
 app.post('/api/users', async (req, res) => {
