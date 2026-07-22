@@ -50,7 +50,7 @@ Add these:
 | Variable | Value |
 |----------|-------|
 | `VITE_CLERK_PUBLISHABLE_KEY` | `pk_test_c3VtbWFyeS1zcGFycm93LTY2LmNsZXJrLmFjY291bnRzLmRldiQ` |
-| `VITE_API_URL` | `https://calorix-cpco.onrender.com` |
+| `VITE_API_URL` | `https://calorix-cqco.onrender.com` |
 
 After saving → go to **Deployments → Redeploy** the latest deployment.
 
@@ -111,7 +111,7 @@ npm run dev
 | **Clerk Dashboard** | https://dashboard.clerk.com |
 | **GitHub Repo** | https://github.com/ashwin2k23/Calorix |
 | **Live Frontend** | https://calorix-taupe.vercel.app |
-| **Live Backend** | https://calorix-cpco.onrender.com |
+| **Live Backend** | https://calorix-cqco.onrender.com |
 | **Local Frontend** | http://localhost:5173 |
 | **Local Backend** | http://localhost:5000 |
 
