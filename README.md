@@ -1,6 +1,6 @@
-# 🔥 Calorix — AI-Powered Indian Nutrition Tracker
+# 🔥 Calorix — Indian Nutrition & Fitness Tracker
 
-A production-ready, full-stack nutrition platform built for Indian users. Track calories, macros, hydration, and workouts with natural language meal logging powered by Google Gemini AI.
+A production-ready, full-stack nutrition platform built for Indian users. Track calories, macros, hydration, and workouts with a searchable Indian food database and smart BMR/TDEE calculation.
 
 <div align="center">
 
@@ -10,7 +10,6 @@ A production-ready, full-stack nutrition platform built for Indian users. Track 
 ![Render](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)
 ![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql)
 ![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF?style=for-the-badge&logo=clerk)
-![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?style=for-the-badge&logo=google)
 
 </div>
 
@@ -21,12 +20,9 @@ A production-ready, full-stack nutrition platform built for Indian users. Track 
 - 🔐 **Clerk Authentication** — Secure sign up, sign in, and session management
 - 🧭 **Smart Onboarding** — 6-step profile setup with automatic BMR/TDEE & macro calculation
 - 📊 **Dynamic Dashboard** — Real-time calorie, macro, and hydration tracking with charts
-- 🍛 **NLP Meal Logging** — Type what you ate naturally (e.g. *"2 masala dosas with sambar"*) and Gemini extracts macros instantly
 - 🔍 **Food Search** — Searchable Indian food database with 500+ items and emoji previews
 - 💧 **Hydration Tracker** — Log and monitor daily water intake against your personal target
 - 🏋️ **Fitness / Workout Logger** — Log workouts with calories burned, duration, and intensity
-- 🤖 **AI Diet Planner** — Get a personalized weekly meal plan tailored to your goals
-- 💬 **AI Nutrition Assistant** — Chat with a Gemini-powered assistant about your diet
 - 📈 **Analytics** — Weekly calorie trends, macro breakdowns, and progress visualizations
 - 🎯 **Goal Management** — Update fitness goals anytime with instant recalculation
 - 👤 **User Profile** — Persistent profile with editable biometrics synced to the database
@@ -45,7 +41,6 @@ A production-ready, full-stack nutrition platform built for Indian users. Track 
 | **Notifications** | Sonner |
 | **Backend** | Node.js + Express 5 |
 | **Database** | PostgreSQL (production) / SQLite (local fallback) |
-| **AI** | Google Gemini (`@google/generative-ai`) |
 | **Security** | Helmet, express-rate-limit, xss, validator |
 
 ---
@@ -69,16 +64,13 @@ cd server
 npm install
 ```
 
-Create a `.env` file in `server/`:
+Create a `.env` file in `server/` (copy from `server/.env.example`):
 ```env
 PORT=5000
 NODE_ENV=development
 
 # Optional — falls back to SQLite if not set
 DATABASE_URL=postgresql://your-db-url
-
-# Optional — enables AI features
-GEMINI_API_KEY=your-gemini-api-key
 
 # Optional — for production CORS
 FRONTEND_URL=https://your-frontend-url.vercel.app
@@ -99,7 +91,7 @@ cd client
 npm install
 ```
 
-Create a `.env` file in `client/` (copy from `.env.example`):
+Create a `.env` file in `client/` (copy from `client/.env.example`):
 ```env
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_key_here
 VITE_API_URL=http://localhost:5000
@@ -127,25 +119,23 @@ Calorix/
 │   │   │   ├── Onboarding.jsx     # 6-step onboarding flow
 │   │   │   ├── Dashboard.jsx      # Dashboard shell & navigation
 │   │   │   └── dashboard/
-│   │   │       ├── Overview.jsx   # Daily stats, ring charts & AI insights
-│   │   │       ├── Meals.jsx      # NLP meal logging & food search
+│   │   │       ├── Overview.jsx   # Daily stats & ring charts
+│   │   │       ├── Meals.jsx      # Meal logging & food search
 │   │   │       ├── Fitness.jsx    # Workout logger & calorie burn tracker
 │   │   │       ├── Analytics.jsx  # Weekly trends & macro charts
-│   │   │       ├── AIPlanner.jsx  # Gemini-powered weekly meal plan
-│   │   │       ├── Assistant.jsx  # AI nutrition chat assistant
 │   │   │       ├── Goals.jsx      # Fitness goal management
 │   │   │       └── Profile.jsx    # User profile & biometrics editor
 │   │   ├── components/            # Shared UI components
 │   │   ├── lib/
-│   │   │   ├── api.js             # API client (fetch wrapper)
-│   │   │   └── foodDatabase.js    # Local Indian food data
+│   │   │   └── api.js             # API client (fetch wrapper)
 │   │   ├── App.jsx                # Routes & Clerk auth guards
 │   │   └── main.jsx               # App entry point
 │   ├── .env.example               # Environment variable template
 │   └── package.json
 │
 ├── server/                        # Node.js + Express Backend
-│   ├── index.js                   # All API routes, DB logic, AI endpoints
+│   ├── index.js                   # All API routes & DB logic
+│   ├── .env.example               # Environment variable template
 │   └── package.json
 │
 └── README.md
@@ -169,9 +159,6 @@ Calorix/
 | `GET` | `/api/workouts/:user_id` | Get all workouts |
 | `DELETE` | `/api/workouts/:id` | Delete a workout |
 | `GET` | `/api/food-search?q=` | Search the food database |
-| `POST` | `/api/ai-diet` | Generate AI meal plan |
-| `POST` | `/api/ai-insight` | Get AI nutrition insights |
-| `POST` | `/api/ai-chat` | Chat with AI assistant |
 
 ---
 
@@ -189,7 +176,6 @@ Calorix/
 2. Set **Root Directory** to `server`, **Start Command** to `node index.js`
 3. Add environment variables:
    - `DATABASE_URL` → your PostgreSQL connection string
-   - `GEMINI_API_KEY`
    - `FRONTEND_URL` → your Vercel frontend URL
    - `NODE_ENV=production`
 
